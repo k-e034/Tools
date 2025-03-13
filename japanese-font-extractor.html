@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日本語活字ボディ抽出ツール</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        canvas {
+            border: 1px solid #ddd;
+            background-color: white;
+            margin: 10px 0;
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            text-align: center;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .control-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        #imagePreview {
+            max-width: 100%;
+            max-height: 300px;
+            display: block;
+            margin: 10px 0;
+        }
+        #binaryPreview {
+            max-width: 100%;
+            max-height: 300px;
+            display: block;
+            margin: 10px 0;
+        }
+        #results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .glyph-item {
+            text-align: center;
+            padding: 5px;
+            border: 1px solid #eee;
+        }
+        .glyph-canvas {
+            width: 80px;
+            height: 80px;
+        }
+        #statusText {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #4CAF50;
+        }
+        .range-with-value {
+            display: flex;
+            align-items: center;
+        }
+        .range-with-value input {
+            flex: 1;
+            margin-right: 10px;
+        }
+        .range-with-value span {
+            width: 30px;
+            text-align: right;
+        }
+        .preview-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .preview-item {
+            flex: 1;
+            min-width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <h1>日本語活字ボディ抽出ツール</h1>
+    
+    <div class="container">
+        <h2>1. 画像のアップロード</h2>
+        <input type="file" id="imageInput" accept="image/*">
+        <p>JPG、PNG画像をサポートしています（TIFFはブラウザの制限により非対応）</p>
+        <div id="statusText">画像をアップロードしてください</div>
+        
+        <div class="preview-container">
+            <div class="preview-item">
+                <h3>元画像</h3>
+                <img id="imagePreview" style="display: none;">
+            </div>
+            <div class="preview-item">
+                <h3>二値化プレビュー</h3>
+                <canvas id="binaryPreview" style="display: none;"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <h2>2. 設定</h2>
+        
+        <div class="control-group">
+            <label for="threshold">二値化閾値</label>
+            <div class="range-with-value">
+                <input type="range" id="threshold" min="0" max="255" value="128" step="1">
+                <span id="thresholdValue">128</span>
+            </div>
+            <button id="previewBtn" disabled>二値化プレビュー</button>
+        </div>
+        
+        <div class="control-group">
+            <label for="mergeDistance">連結成分の結合距離 (px)</label>
+            <div class="range-with-value">
+                <input type="range" id="mergeDistance" min="0" max="20" value="5" step="1">
+                <span id="mergeDistanceValue">5</span>
+            </div>
+            <p>離れた部分（なべぶたなど）を結合するための距離。大きくすると別の文字も結合する可能性があります。</p>
+        </div>
+        
+        <div class="control-group">
+            <label for="expandBody">ボディ拡張係数</label>
+            <div class="range-with-value">
+                <input type="range" id="expandBody" min="1.0" max="2.0" value="1.3" step="0.1">
+                <span id="expandBodyValue">1.3</span>
+            </div>
+            <p>字面からボディ全体を推定する係数。大きいほど広いボディになります。</p>
+        </div>
+        
+        <div class="control-group">
+            <label for="minSize">最小文字サイズ (px)</label>
+            <input type="number" id="minSize" min="10" value="20" step="1">
+            <p>これより小さい連結成分はノイズとして無視されます。</p>
+        </div>
+        
+        <div class="control-group">
+            <label for="maxSize">最大文字サイズ (px)</label>
+            <input type="number" id="maxSize" min="50" value="200" step="10">
+            <p>これより大きい連結成分は処理されません。</p>
+        </div>
+        
+        <div class="control-group">
+            <label for="outputSize">出力サイズ (px)</label>
+            <input type="number" id="outputSize" min="32" max="1024" value="256" step="32">
+            <p>抽出された各字形の出力サイズです。</p>
+        </div>
+        
+        <button id="processBtn" disabled>処理開始</button>
+    </div>
+    
+    <div class="container">
+        <h2>3. 結果</h2>
+        <div id="results"></div>
+        <button id="downloadBtn" disabled>すべてダウンロード (ZIP)</button>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <script>
+        // 状態変数
+        let currentImage = null;
+        let binaryData = null;
+        let labeledData = null;
+        let extractedGlyphs = [];
+        
+        // DOM要素
+        const imageInput = document.getElementById('imageInput');
+        const imagePreview = document.getElementById('imagePreview');
+        const binaryPreview = document.getElementById('binaryPreview');
+        const statusText = document.getElementById('statusText');
+        const thresholdSlider = document.getElementById('threshold');
+        const thresholdValue = document.getElementById('thresholdValue');
+        const mergeDistanceSlider = document.getElementById('mergeDistance');
+        const mergeDistanceValue = document.getElementById('mergeDistanceValue');
+        const expandBodySlider = document.getElementById('expandBody');
+        const expandBodyValue = document.getElementById('expandBodyValue');
+        const minSizeInput = document.getElementById('minSize');
+        const maxSizeInput = document.getElementById('maxSize');
+        const outputSizeInput = document.getElementById('outputSize');
+        const previewBtn = document.getElementById('previewBtn');
+        const processBtn = document.getElementById('processBtn');
+        const resultsDiv = document.getElementById('results');
+        const downloadBtn = document.getElementById('downloadBtn');
+        
+        // イベントリスナー
+        imageInput.addEventListener('change', handleImageUpload);
+        thresholdSlider.addEventListener('input', updateThresholdValue);
+        mergeDistanceSlider.addEventListener('input', updateMergeDistanceValue);
+        expandBodySlider.addEventListener('input', updateExpandBodyValue);
+        previewBtn.addEventListener('click', updateBinaryPreview);
+        processBtn.addEventListener('click', processImage);
+        downloadBtn.addEventListener('click', downloadAllGlyphs);
+        
+        // 値の表示を更新
+        function updateThresholdValue() {
+            thresholdValue.textContent = thresholdSlider.value;
+        }
+        
+        function updateMergeDistanceValue() {
+            mergeDistanceValue.textContent = mergeDistanceSlider.value;
+        }
+        
+        function updateExpandBodyValue() {
+            expandBodyValue.textContent = expandBodySlider.value;
+        }
+        
+        // ステータスメッセージを更新
+        function updateStatus(message, isError = false) {
+            statusText.textContent = message;
+            statusText.style.borderLeftColor = isError ? '#d9534f' : '#4CAF50';
+        }
+        
+        // 画像のアップロード
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            updateStatus(`ファイル "${file.name}" を読み込んでいます...`);
+            
+            const fileReader = new FileReader();
+            
+            fileReader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    currentImage = img;
+                    imagePreview.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                    previewBtn.disabled = false;
+                    processBtn.disabled = false;
+                    updateStatus(`画像を読み込みました (${img.width}x${img.height}px)`);
+                    
+                    // 自動的に二値化プレビューを表示
+                    updateBinaryPreview();
+                };
+                
+                img.onerror = function() {
+                    updateStatus('画像の読み込みに失敗しました', true);
+                };
+                
+                img.src = e.target.result;
+            };
+            
+            fileReader.onerror = function() {
+                updateStatus('ファイルの読み込みに失敗しました', true);
+            };
+            
+            fileReader.readAsDataURL(file);
+        }
+        
+        // 二値化プレビューの更新
+        function updateBinaryPreview() {
+            if (!currentImage) return;
+            
+            const threshold = parseInt(thresholdSlider.value);
+            
+            // キャンバスのサイズを設定
+            binaryPreview.width = currentImage.width;
+            binaryPreview.height = currentImage.height;
+            binaryPreview.style.display = 'block';
+            
+            const ctx = binaryPreview.getContext('2d');
+            
+            // 元画像を描画
+            ctx.drawImage(currentImage, 0, 0);
+            
+            // 画像データを取得
+            const imageData = ctx.getImageData(0, 0, binaryPreview.width, binaryPreview.height);
+            const data = imageData.data;
+            
+            // 二値化データを作成
+            binaryData = new Array(binaryPreview.height);
+            for (let y = 0; y < binaryPreview.height; y++) {
+                binaryData[y] = new Array(binaryPreview.width);
+                for (let x = 0; x < binaryPreview.width; x++) {
+                    const idx = (y * binaryPreview.width + x) * 4;
+                    // グレースケール変換
+                    const gray = 0.3 * data[idx] + 0.59 * data[idx + 1] + 0.11 * data[idx + 2];
+                    // 二値化（閾値以下を前景に）
+                    binaryData[y][x] = gray < threshold ? 1 : 0;
+                    
+                    // 画像データも更新
+                    const value = binaryData[y][x] === 1 ? 0 : 255; // 黒と白を反転
+                    data[idx] = data[idx + 1] = data[idx + 2] = value;
+                }
+            }
+            
+            // 更新した画像データを描画
+            ctx.putImageData(imageData, 0, 0);
+            
+            updateStatus(`二値化プレビューを更新しました (閾値: ${threshold})`);
+        }
+        
+        // 画像処理
+        function processImage() {
+            if (!currentImage) return;
+            
+            // パラメータを取得
+            const threshold = parseInt(thresholdSlider.value);
+            const mergeDistance = parseInt(mergeDistanceSlider.value);
+            const expandBody = parseFloat(expandBodySlider.value);
+            const minSize = parseInt(minSizeInput.value);
+            const maxSize = parseInt(maxSizeInput.value);
+            const outputSize = parseInt(outputSizeInput.value);
+            
+            updateStatus('画像処理中...');
+            processBtn.disabled = true;
+            
+            // 結果をクリア
+            resultsDiv.innerHTML = '';
+            extractedGlyphs = [];
+            
+            // 処理を非同期で実行
+            setTimeout(() => {
+                try {
+                    // 二値化プレビューが表示されていない場合は更新
+                    if (!binaryData) {
+                        updateBinaryPreview();
+                    }
+                    
+                    // 連結成分ラベリング
+                    labeledData = labelComponents(binaryData);
+                    
+                    // 近接連結成分の結合
+                    if (mergeDistance > 0) {
+                        labeledData = mergeNearbyComponents(labeledData, mergeDistance);
+                    }
+                    
+                    // 連結成分情報を取得
+                    const components = extractComponentInfo(labeledData);
+                    
+                    // サイズでフィルタリング
+                    const filteredComponents = components.filter(comp => 
+                        comp.width >= minSize && comp.width <= maxSize && 
+                        comp.height >= minSize && comp.height <= maxSize);
+                    
+                    if (filteredComponents.length === 0) {
+                        updateStatus('字形が見つかりませんでした。パラメータを調整してください。', true);
+                        processBtn.disabled = false;
+                        return;
+                    }
+                    
+                    updateStatus(`${filteredComponents.length}個の字形を抽出しています...`);
+                    
+                    // 各連結成分を処理
+                    for (let i = 0; i < filteredComponents.length; i++) {
+                        const comp = filteredComponents[i];
+                        
+                        // ボディサイズを計算
+                        const bodyWidth = Math.ceil(comp.width * expandBody);
+                        const bodyHeight = Math.ceil(comp.height * expandBody);
+                        
+                        // ボディの開始位置を計算（中央揃え）
+                        const bodyStartX = Math.max(0, comp.minX - Math.floor((bodyWidth - comp.width) / 2));
+                        const bodyStartY = Math.max(0, comp.minY - Math.floor((bodyHeight - comp.height) / 2));
+                        
+                        // ボディの終了位置を計算
+                        const bodyEndX = Math.min(currentImage.width - 1, bodyStartX + bodyWidth);
+                        const bodyEndY = Math.min(currentImage.height - 1, bodyStartY + bodyHeight);
+                        
+                        // 実際のボディサイズ
+                        const actualBodyWidth = bodyEndX - bodyStartX + 1;
+                        const actualBodyHeight = bodyEndY - bodyStartY + 1;
+                        
+                        // 正方形ボディを確保
+                        const maxBodyDimension = Math.max(actualBodyWidth, actualBodyHeight);
+                        
+                        // ボディキャンバスを作成
+                        const bodyCanvas = document.createElement('canvas');
+                        bodyCanvas.width = maxBodyDimension;
+                        bodyCanvas.height = maxBodyDimension;
+                        const bodyCtx = bodyCanvas.getContext('2d');
+                        
+                        // 背景を白で塗りつぶす
+                        bodyCtx.fillStyle = 'white';
+                        bodyCtx.fillRect(0, 0, maxBodyDimension, maxBodyDimension);
+                        
+                        // ボディ領域を元画像からコピー（中央揃え）
+                        const offsetX = Math.floor((maxBodyDimension - actualBodyWidth) / 2);
+                        const offsetY = Math.floor((maxBodyDimension - actualBodyHeight) / 2);
+                        
+                        // 元画像から対応する領域を描画
+                        bodyCtx.drawImage(
+                            currentImage,
+                            bodyStartX, bodyStartY,
+                            actualBodyWidth, actualBodyHeight,
+                            offsetX, offsetY,
+                            actualBodyWidth, actualBodyHeight
+                        );
+                        
+                        // 出力サイズに調整
+                        const outputCanvas = document.createElement('canvas');
+                        outputCanvas.width = outputSize;
+                        outputCanvas.height = outputSize;
+                        const outputCtx = outputCanvas.getContext('2d');
+                        
+                        // アンチエイリアシングを有効化（ベクトルフォント的な質感に）
+                        outputCtx.imageSmoothingEnabled = true;
+                        outputCtx.imageSmoothingQuality = 'high';
+                        
+                        // リサイズして描画
+                        outputCtx.drawImage(bodyCanvas, 0, 0, outputSize, outputSize);
+                        
+                        // 抽出された字形を保存
+                        const glyph = {
+                            canvas: outputCanvas,
+                            dataURL: outputCanvas.toDataURL('image/png'),
+                            index: i + 1
+                        };
+                        
+                        extractedGlyphs.push(glyph);
+                        
+                        // 結果に追加
+                        addGlyphToResults(glyph, i);
+                    }
+                    
+                    updateStatus(`${extractedGlyphs.length}個の字形を抽出しました`);
+                    downloadBtn.disabled = extractedGlyphs.length === 0;
+                } catch (error) {
+                    console.error(error);
+                    updateStatus('処理中にエラーが発生しました: ' + error.message, true);
+                } finally {
+                    processBtn.disabled = false;
+                }
+            }, 100);
+        }
+        
+        // 連結成分ラベリング（8連結）
+        function labelComponents(binary) {
+            const height = binary.length;
+            const width = binary[0].length;
+            
+            // ラベル配列の初期化
+            const labels = Array(height).fill().map(() => Array(width).fill(0));
+            let nextLabel = 1;
+            
+            // Union-Find用のデータ構造
+            const parentLabels = {};
+            
+            // Union-Find操作: 根を見つける
+            function findRoot(label) {
+                if (parentLabels[label] !== label) {
+                    parentLabels[label] = findRoot(parentLabels[label]);
+                }
+                return parentLabels[label];
+            }
+            
+            // Union-Find操作: 2つのラベルを統合
+            function union(label1, label2) {
+                const root1 = findRoot(label1);
+                const root2 = findRoot(label2);
+                if (root1 !== root2) {
+                    parentLabels[root2] = root1;
+                }
+            }
+            
+            // 8方向の隣接確認用オフセット
+            const dx = [-1, 0, 1, -1, 1, -1, 0, 1];
+            const dy = [-1, -1, -1, 0, 0, 1, 1, 1];
+            
+            // 第1パス: 仮ラベル付け
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    // 前景ピクセルのみ処理
+                    if (binary[y][x] === 1) {
+                        // 隣接するラベルを確認
+                        const neighborLabels = [];
+                        
+                        for (let i = 0; i < 8; i++) {
+                            const nx = x + dx[i];
+                            const ny = y + dy[i];
+                            
+                            if (nx >= 0 && nx < width && ny >= 0 && ny < height &&
+                                binary[ny][nx] === 1 && labels[ny][nx] > 0) {
+                                neighborLabels.push(labels[ny][nx]);
+                            }
+                        }
+                        
+                        if (neighborLabels.length === 0) {
+                            // 新しいラベルを割り当て
+                            labels[y][x] = nextLabel;
+                            parentLabels[nextLabel] = nextLabel;
+                            nextLabel++;
+                        } else {
+                            // 隣接するラベルの中で最小のものを使用
+                            const minLabel = Math.min(...neighborLabels);
+                            labels[y][x] = minLabel;
+                            
+                            // すべての隣接ラベルを等価とマーク
+                            for (const neighborLabel of neighborLabels) {
+                                if (neighborLabel !== minLabel) {
+                                    union(minLabel, neighborLabel);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 第2パス: 最終ラベル付け（代表ラベルに置き換え）
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    if (labels[y][x] > 0) {
+                        labels[y][x] = findRoot(labels[y][x]);
+                    }
+                }
+            }
+            
+            // ラベル番号を振り直す（隙間を詰める）
+            const uniqueLabels = [...new Set(labels.flat().filter(v => v > 0))];
+            const labelMap = {};
+            uniqueLabels.forEach((label, index) => {
+                labelMap[label] = index + 1;
+            });
+            
+            // 最終的なラベル配列
+            const finalLabels = Array(height).fill().map(() => Array(width).fill(0));
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    if (labels[y][x] > 0) {
+                        finalLabels[y][x] = labelMap[labels[y][x]];
+                    }
+                }
+            }
+            
+            return finalLabels;
+        }
+        
+        // 近接した連結成分を結合
+        function mergeNearbyComponents(labeled, distance) {
+            if (distance <= 0) return labeled;
+            
+            const height = labeled.length;
+            const width = labeled[0].length;
+            
+            // 連結成分情報を取得
+            const components = extractComponentInfo(labeled);
+            
+            // 各成分間の距離を計算
+            const distances = [];
+            for (let i = 0; i < components.length; i++) {
+                for (let j = i + 1; j < components.length; j++) {
+                    const comp1 = components[i];
+                    const comp2 = components[j];
+                    
+                    // 最短距離を計算
+                    const distX = Math.max(0, Math.min(
+                        Math.abs(comp1.minX - comp2.maxX),
+                        Math.abs(comp2.minX - comp1.maxX)
+                    ));
+                    
+                    const distY = Math.max(0, Math.min(
+                        Math.abs(comp1.minY - comp2.maxY),
+                        Math.abs(comp2.minY - comp1.maxY)
+                    ));
+                    
+                    // 水平または垂直に重なっている場合
+                    let minDist;
+                    if (distX === 0 || distY === 0) {
+                        minDist = distX + distY;
+                    } else {
+                        // 両方の距離がある場合（対角線）は直線距離
+                        minDist = Math.sqrt(distX * distX + distY * distY);
+                    }
+                    
+                    if (minDist <= distance) {
+                        distances.push({
+                            label1: comp1.label,
+                            label2: comp2.label,
+                            distance: minDist
+                        });
+                    }
+                }
+            }
+            
+            // 距離でソート
+            distances.sort((a, b) => a.distance - b.distance);
+            
+            // Union-Find構造
+            const parentLabels = {};
+            components.forEach(comp => {
+                parentLabels[comp.label] = comp.label;
+            });
+            
+            function findRoot(label) {
+                if (parentLabels[label] !== label) {
+                    parentLabels[label] = findRoot(parentLabels[label]);
+                }
+                return parentLabels[label];
+            }
+            
+            function union(label1, label2) {
+                const root1 = findRoot(label1);
+                const root2 = findRoot(label2);
+                if (root1 !== root2) {
+                    parentLabels[root2] = root1;
+                }
+            }
+            
+            // 近接成分を統合
+            distances.forEach(d => {
+                union(d.label1, d.label2);
+            });
+            
+            // 新しいラベル配列を作成
+            const mergedLabels = Array(height).fill().map(() => Array(width).fill(0));
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    if (labeled[y][x] > 0) {
+                        mergedLabels[y][x] = findRoot(labeled[y][x]);
+                    }
+                }
+            }
+            
+            // ラベル番号を振り直す
+            const uniqueLabels = [...new Set(mergedLabels.flat().filter(v => v > 0))];
+            const labelMap = {};
+            uniqueLabels.forEach((label, index) => {
+                labelMap[label] = index + 1;
+            });
+            
+            // 最終的なラベル配列
+            const finalLabels = Array(height).fill().map(() => Array(width).fill(0));
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    if (mergedLabels[y][x] > 0) {
+                        finalLabels[y][x] = labelMap[mergedLabels[y][x]];
+                    }
+                }
+            }
+            
+            return finalLabels;
+        }
+        
+        // 連結成分の情報を抽出
+        function extractComponentInfo(labeled) {
+            const height = labeled.length;
+            const width = labeled[0].length;
+            
+            // ラベルの集合を取得
+            const labelSet = new Set();
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    if (labeled[y][x] > 0) {
+                        labelSet.add(labeled[y][x]);
+                    }
+                }
+            }
+            
+            // 各ラベルの情報を収集
+            const components = [];
+            labelSet.forEach(label => {
+                let minX = width, minY = height, maxX = 0, maxY = 0;
+                let pixelCount = 0;
+                
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        if (labeled[y][x] === label) {
+                            minX = Math.min(minX, x);
+                            minY = Math.min(minY, y);
+                            maxX = Math.max(maxX, x);
+                            maxY = Math.max(maxY, y);
+                            pixelCount++;
+                        }
+                    }
+                }
+                
+                const compWidth = maxX - minX + 1;
+                const compHeight = maxY - minY + 1;
+                
+                components.push({
+                    label,
+                    minX,
+                    minY,
+                    maxX,
+                    maxY,
+                    width: compWidth,
+                    height: compHeight,
+                    area: pixelCount,
+                    density: pixelCount / (compWidth * compHeight)
+                });
+            });
+            
+            return components;
+        }
+        
+        // 結果に字形を追加
+        function addGlyphToResults(glyph, index) {
+            const glyphItem = document.createElement('div');
+            glyphItem.className = 'glyph-item';
+            
+            const canvas = document.createElement('canvas');
+            canvas.className = 'glyph-canvas';
+            canvas.width = 80;
+            canvas.height = 80;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(glyph.canvas, 0, 0, 80, 80);
+            
+            const label = document.createElement('div');
+            label.textContent = `字形 ${index + 1}`;
+            
+            glyphItem.appendChild(canvas);
+            glyphItem.appendChild(label);
+            resultsDiv.appendChild(glyphItem);
+        }
+        
+        // すべての字形をZIPでダウンロード
+        async function downloadAllGlyphs() {
+            if (extractedGlyphs.length === 0) return;
+            
+            updateStatus('ZIPファイルを準備中...');
+            downloadBtn.disabled = true;
+            
+            try {
+                const zip = new JSZip();
+                
+                // 各字形をZIPに追加
+                for (let i = 0; i < extractedGlyphs.length; i++) {
+                    // DataURLからバイナリデータを抽出
+                    const dataURL = extractedGlyphs[i].dataURL;
+                    const base64Data = dataURL.split(',')[1];
+                    const binaryString = atob(base64Data);
+                    
+                    // バイナリデータをUint8Arrayに変換
+                    const bytes = new Uint8Array(binaryString.length);
+                    for (let j = 0; j < binaryString.length; j++) {
+                        bytes[j] = binaryString.charCodeAt(j);
+                    }
+                    
+                    zip.file(`glyph_${extractedGlyphs[i].index}.png`, bytes);
+                }
+                
+                // ZIPを生成してダウンロード
+                const content = await zip.generateAsync({type: 'blob'});
+                saveAs(content, 'extracted_glyphs.zip');
+                
+                updateStatus(`${extractedGlyphs.length}個の字形をダウンロードしました`);
+            } catch (error) {
+                console.error(error);
+                updateStatus('ダウンロード中にエラーが発生しました: ' + error.message, true);
+            } finally {
+                downloadBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
