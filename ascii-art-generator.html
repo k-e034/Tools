@@ -12,8 +12,9 @@ body { background: #000; color: #fff; font-family: monospace; text-align: center
     margin: 0 auto;
     text-align: left;
     font-family: monospace;
-    font-size: 16px;
+    font-size: 10px;
     letter-spacing: 0;
+    background: #000;
 }
 #ascii div {
     white-space: nowrap;
@@ -21,16 +22,27 @@ body { background: #000; color: #fff; font-family: monospace; text-align: center
 }
 input[type=range] { width: 300px; }
 .control-group { margin: 15px 0; }
+button { font-size: 1em; padding: 4px 16px; }
 </style>
 </head>
 <body>
 <h1>ASCII Art Generator</h1>
 <div class="control-group"><input type="file" id="fileInput"></div>
-<div class="control-group">明るさ調整：<input type="range" id="brightness" min="0" max="2" step="0.1" value="1"></div>
-<div class="control-group">解像度調整：<input type="range" id="fontSize" min="1" max="4" step="0.2" value="2"></div>
+<div class="control-group">
+    文字サイズ（px）:
+    <input type="range" id="fontSize" min="0.5" max="16" step="0.5" value="8">
+    <span id="fontSizeValue">8.0</span> px
+</div>
+<div class="control-group">
+    明るさ調整：
+    <input type="range" id="brightness" min="0" max="2" step="0.1" value="1">
+</div>
 <div class="control-group">
     <label><input type="checkbox" id="edgeDetection"> エッジ検出を有効化</label>
     <label><input type="checkbox" id="colorize"> カラライズを有効化</label>
+</div>
+<div class="control-group">
+    <button id="saveImage">画像として保存</button>
 </div>
 <canvas id="canvas" style="display:none;"></canvas>
 <div id="ascii"></div>
@@ -39,12 +51,17 @@ const fileInput = document.getElementById('fileInput');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const asciiDiv = document.getElementById('ascii');
-const brightnessControl = document.getElementById('brightness');
 const fontSizeControl = document.getElementById('fontSize');
+const fontSizeValue = document.getElementById('fontSizeValue');
+const brightnessControl = document.getElementById('brightness');
 const edgeDetectionControl = document.getElementById('edgeDetection');
 const colorizeControl = document.getElementById('colorize');
+const saveImageBtn = document.getElementById('saveImage');
 const asciiChars = Array.from({ length: 95 }, (_, i) => String.fromCharCode(i + 32)).reverse();
 let originalImage = null;
+let lastAsciiGrid = [];
+let lastColorGrid = [];
+let lastFontSize = 10;
 
 fileInput.onchange = function(e) {
     const file = fileInput.files[0];
@@ -60,8 +77,11 @@ fileInput.onchange = function(e) {
     };
     reader.readAsDataURL(file);
 };
+fontSizeControl.oninput = function() {
+    fontSizeValue.textContent = parseFloat(fontSizeControl.value).toFixed(1);
+    generateAscii();
+};
 brightnessControl.oninput = generateAscii;
-fontSizeControl.oninput = generateAscii;
 edgeDetectionControl.onchange = generateAscii;
 colorizeControl.onchange = generateAscii;
 window.addEventListener('resize', generateAscii);
@@ -91,7 +111,9 @@ function applyEdgeDetection(imageData) {
 function generateAscii() {
     if (!originalImage) return;
     const screenWidth = window.innerWidth - 40;
-    const fontSize = parseInt(fontSizeControl.value) * 8;
+    const fontSize = parseFloat(fontSizeControl.value);
+    lastFontSize = fontSize;
+    // アスペクト比補正：縦横比0.5（2行で1文字分の高さ）
     const charWidth = fontSize * 0.6;
     const maxChars = Math.floor(screenWidth / charWidth);
     const scale = maxChars / originalImage.width;
@@ -106,7 +128,9 @@ function generateAscii() {
     const brightness = parseFloat(brightnessControl.value);
     const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     let asciiText = '', asciiHtml = '';
+    let asciiGrid = [], colorGrid = [];
     for (let y = 0; y < imgData.height; y += 2) {
+        let asciiRow = [], colorRow = [];
         if (colorizeControl.checked) asciiHtml += '<div style="display:flex;">';
         for (let x = 0; x < imgData.width; x++) {
             const offset = (y * imgData.width + x) * 4;
@@ -114,6 +138,8 @@ function generateAscii() {
             const avg = ((r + g + b) / 3) * brightness;
             const charIndex = Math.floor((avg / 255) * (asciiChars.length - 1));
             const char = asciiChars[Math.min(Math.max(charIndex, 0), asciiChars.length - 1)];
+            asciiRow.push(char);
+            colorRow.push([r, g, b]);
             asciiText += char;
             if (colorizeControl.checked) {
                 asciiHtml += `<span style="display:inline-block;width:1em;color:rgb(${r},${g},${b})">${char === ' ' ? '&nbsp;' : char}</span>`;
@@ -121,6 +147,8 @@ function generateAscii() {
                 asciiHtml += char;
             }
         }
+        asciiGrid.push(asciiRow);
+        colorGrid.push(colorRow);
         asciiText += '\n';
         if (colorizeControl.checked) asciiHtml += '</div>';
         else asciiHtml += '\n';
@@ -128,12 +156,51 @@ function generateAscii() {
     const containerWidth = Math.floor(maxChars * charWidth);
     adjustAsciiWidth(containerWidth, fontSize);
 
+    lastAsciiGrid = asciiGrid;
+    lastColorGrid = colorGrid;
     if (colorizeControl.checked) {
         asciiDiv.innerHTML = asciiHtml;
     } else {
         asciiDiv.textContent = asciiText;
     }
 }
+
+saveImageBtn.onclick = function() {
+    if (!lastAsciiGrid.length) return;
+    const fontSize = lastFontSize;
+    const charWidth = fontSize * 0.6;
+    const charHeight = fontSize * 2;
+    const width = Math.floor(lastAsciiGrid[0].length * charWidth);
+    const height = Math.floor(lastAsciiGrid.length * charHeight);
+    const tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width = width;
+    tmpCanvas.height = height;
+    const tmpCtx = tmpCanvas.getContext('2d');
+    tmpCtx.fillStyle = "#000";
+    tmpCtx.fillRect(0, 0, width, height);
+    tmpCtx.font = `bold ${fontSize}px monospace`;
+    tmpCtx.textBaseline = "top";
+    for (let y = 0; y < lastAsciiGrid.length; y++) {
+        for (let x = 0; x < lastAsciiGrid[0].length; x++) {
+            const char = lastAsciiGrid[y][x];
+            if (colorizeControl.checked) {
+                const [r, g, b] = lastColorGrid[y][x];
+                tmpCtx.fillStyle = `rgb(${r},${g},${b})`;
+            } else {
+                tmpCtx.fillStyle = "#fff";
+            }
+            tmpCtx.fillText(char, x * charWidth, y * charHeight);
+        }
+    }
+    const url = tmpCanvas.toDataURL("image/png");
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ascii_art.png';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+};
+
 </script>
 </body>
 </html>
