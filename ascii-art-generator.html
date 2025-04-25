@@ -13,18 +13,19 @@
             margin: 0 auto;
             padding: 10px;
         }
-        #ascii { 
-            white-space: pre-wrap;
+        #ascii pre { 
+            display: inline-block;
+            white-space: pre;
             line-height: 1em;
             margin: 0 auto;
-            text-align: center;
-            max-width: 100%;
-            overflow-x: hidden;
+            text-align: left;
+            max-width: 100vw;
             font-family: monospace;
+            font-size: 16px; /* 初期値、JSで上書き */
+            letter-spacing: 0;
         }
         input[type=range] { width: 300px; }
         .control-group { margin: 15px 0; }
-        /* カラライズ表示用 */
         .ascii-color { display: inline; }
     </style>
 </head>
@@ -33,15 +34,12 @@
     <div class="control-group">
         <input type="file" id="fileInput">
     </div>
-    
     <div class="control-group">
         明るさ調整：<input type="range" id="brightness" min="0" max="2" step="0.1" value="1">
     </div>
-    
     <div class="control-group">
         解像度調整：<input type="range" id="fontSize" min="1" max="4" step="0.2" value="2">
     </div>
-    
     <div class="control-group">
         <label>
             <input type="checkbox" id="edgeDetection"> エッジ検出を有効化
@@ -50,27 +48,21 @@
             <input type="checkbox" id="colorize"> カラライズを有効化
         </label>
     </div>
-    
     <canvas id="canvas" style="display:none;"></canvas>
-    <div id="ascii"></div>
-    
+    <div id="ascii"><pre></pre></div>
     <script>
-        // DOM要素取得
         const fileInput = document.getElementById('fileInput');
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const asciiDiv = document.getElementById('ascii');
+        const asciiPre = asciiDiv.querySelector('pre');
         const brightnessControl = document.getElementById('brightness');
         const fontSizeControl = document.getElementById('fontSize');
         const edgeDetectionControl = document.getElementById('edgeDetection');
         const colorizeControl = document.getElementById('colorize');
-
-        // ASCII文字を暗いものから明るいものへと並べる（コード32から126まで）
         const asciiChars = Array.from({ length: 95 }, (_, i) => String.fromCharCode(i + 32)).reverse();
-
         let originalImage = null;
 
-        // イベント設定
         fileInput.onchange = function(e) {
             const file = fileInput.files[0];
             if (!file) return;
@@ -93,13 +85,12 @@
 
         function adjustAsciiWidth() {
             if (!originalImage) return;
-            const fontSize = parseInt(fontSizeControl.value);
+            const fontSize = parseInt(fontSizeControl.value) * 8;
             const containerWidth = window.innerWidth - 20;
-            asciiDiv.style.fontSize = fontSize + 'px';
-            asciiDiv.style.maxWidth = containerWidth + 'px';
+            asciiPre.style.fontSize = fontSize + 'px';
+            asciiPre.style.maxWidth = containerWidth + 'px';
         }
 
-        // エッジ検出関数
         function applyEdgeDetection(imageData) {
             const width = imageData.width;
             const height = imageData.height;
@@ -135,20 +126,21 @@
             return (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
         }
 
-        // ASCII生成関数
         function generateAscii() {
             if (!originalImage) return;
             // 画面の幅を取得
             const screenWidth = window.innerWidth - 40;
-            const fontSize = parseInt(fontSizeControl.value);
-            asciiDiv.style.fontSize = fontSize + 'px';
+            const fontSize = parseInt(fontSizeControl.value) * 8;
+            asciiPre.style.fontSize = fontSize + 'px';
+            asciiPre.style.lineHeight = '1em';
+            asciiPre.style.letterSpacing = '0';
+            asciiPre.style.maxWidth = (window.innerWidth - 20) + 'px';
             const charWidth = fontSize * 0.6;
             const maxChars = Math.floor(screenWidth / charWidth);
             const scale = maxChars / originalImage.width;
             canvas.width = maxChars;
             canvas.height = Math.floor(originalImage.height * scale);
             ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
-            // エッジ検出
             if (edgeDetectionControl.checked) {
                 const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 applyEdgeDetection(imgData);
@@ -156,10 +148,9 @@
             }
             const brightness = parseFloat(brightnessControl.value);
             const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            // ASCII生成
-            let ascii = '';
             let asciiHTML = '';
             for (let y = 0; y < imgData.height; y += 2) {
+                let line = '';
                 for (let x = 0; x < imgData.width; x++) {
                     const offset = (y * imgData.width + x) * 4;
                     const r = imgData.data[offset];
@@ -168,21 +159,15 @@
                     const avg = ((r + g + b) / 3) * brightness;
                     const charIndex = Math.floor((avg / 255) * (asciiChars.length - 1));
                     const char = asciiChars[Math.min(Math.max(charIndex, 0), asciiChars.length - 1)];
-                    ascii += char;
                     if (colorizeControl.checked) {
-                        asciiHTML += `<span class="ascii-color" style="color: rgb(${r},${g},${b})">${char}</span>`;
+                        line += `<span class=\"ascii-color\" style=\"color: rgb(${r},${g},${b})\">${char}</span>`;
                     } else {
-                        asciiHTML += char;
+                        line += char;
                     }
                 }
-                ascii += '\n';
-                asciiHTML += '<br>';
+                asciiHTML += line + '\\n';
             }
-            if (colorizeControl.checked) {
-                asciiDiv.innerHTML = asciiHTML;
-            } else {
-                asciiDiv.textContent = ascii;
-            }
+            asciiPre.innerHTML = asciiHTML;
             adjustAsciiWidth();
         }
     </script>
