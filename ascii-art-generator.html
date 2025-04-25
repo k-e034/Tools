@@ -48,7 +48,6 @@ button { font-size: 1em; padding: 4px 16px; }
 </div>
 <canvas id="canvas" style="display:none;"></canvas>
 <div id="ascii"></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 const fileInput = document.getElementById('fileInput');
 const canvas = document.getElementById('canvas');
@@ -172,7 +171,8 @@ saveImageBtn.onclick = function() {
     if (!lastAsciiGrid.length) return;
     const fontSize = lastFontSize;
     const charWidth = fontSize * 0.6;
-    const charHeight = fontSize * 2;
+    // ここを修正: charHeight = fontSize（「2」を掛けない）
+    const charHeight = fontSize;
     const width = Math.floor(lastAsciiGrid[0].length * charWidth);
     const height = Math.floor(lastAsciiGrid.length * charHeight);
     const tmpCanvas = document.createElement('canvas');
@@ -207,15 +207,14 @@ saveImageBtn.onclick = function() {
 savePDFBtn.onclick = function() {
     if (!lastAsciiGrid.length) return;
     const fontSize = lastFontSize;
-    // 1pt = 1/72inch、1px ≒ 0.75pt（一般的ディスプレイ基準）
     const px2pt = 0.75;
     const charWidth = fontSize * 0.6;
-    const charHeight = fontSize * 2;
+    // ここも charHeight = fontSize に修正
+    const charHeight = fontSize;
     const cols = lastAsciiGrid[0].length, rows = lastAsciiGrid.length;
     const pdfWidth = cols * charWidth * px2pt;
     const pdfHeight = rows * charHeight * px2pt;
     const { jsPDF } = window.jspdf;
-    // ページサイズは「ASCIIアートそのまま」フィット
     const pdf = new jsPDF({
         orientation: (pdfWidth > pdfHeight) ? "l" : "p",
         unit: "pt",
@@ -234,8 +233,13 @@ savePDFBtn.onclick = function() {
             } else {
                 pdf.setTextColor(255, 255, 255);
             }
-            // x, y座標は「左上基準、グリッドごと」に配置
-            pdf.text(char, x * charWidth * px2pt, (y + 1) * charHeight * px2pt, { baseline: 'bottom' });
+            // y座標を (y+1)*charHeight*px2pt から y*charHeight*px2pt + (fontSize*px2pt) へ
+            pdf.text(
+                char,
+                x * charWidth * px2pt,
+                y * charHeight * px2pt + (fontSize * px2pt),
+                { baseline: 'bottom' }
+            );
         }
     }
     pdf.save('ascii_art.pdf');
