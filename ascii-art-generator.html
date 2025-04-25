@@ -43,6 +43,15 @@ button { font-size: 1em; padding: 4px 16px; }
     <label><input type="checkbox" id="colorize"> カラライズを有効化</label>
 </div>
 <div class="control-group">
+    PNG解像度：
+    <select id="pngResolution">
+        <option value="1">小</option>
+        <option value="2">中</option>
+        <option value="3">大</option>
+        <option value="4">最大</option>
+    </select>
+</div>
+<div class="control-group">
     <button id="saveImage">PNG画像として保存</button>
     <button id="savePDF">PDFとして保存</button>
 </div>
@@ -167,21 +176,27 @@ function generateAscii() {
     }
 }
 
+const pngResolutionSelect = document.getElementById('pngResolution');
+
 saveImageBtn.onclick = function() {
     if (!lastAsciiGrid.length) return;
     const fontSize = lastFontSize;
     const charWidth = fontSize * 0.6;
-    // ここを修正: charHeight = fontSize（「2」を掛けない）
     const charHeight = fontSize;
-    const width = Math.floor(lastAsciiGrid[0].length * charWidth);
-    const height = Math.floor(lastAsciiGrid.length * charHeight);
+
+    // 解像度スケール
+    const scaleMap = { 1: 1, 2: 2, 3: 3, 4: 4 };
+    const scale = scaleMap[pngResolutionSelect.value] || 1;
+
+    const width = Math.floor(lastAsciiGrid[0].length * charWidth * scale);
+    const height = Math.floor(lastAsciiGrid.length * charHeight * scale);
     const tmpCanvas = document.createElement('canvas');
     tmpCanvas.width = width;
     tmpCanvas.height = height;
     const tmpCtx = tmpCanvas.getContext('2d');
     tmpCtx.fillStyle = "#000";
     tmpCtx.fillRect(0, 0, width, height);
-    tmpCtx.font = `bold ${fontSize}px monospace`;
+    tmpCtx.font = `bold ${fontSize * scale}px monospace`;
     tmpCtx.textBaseline = "top";
     for (let y = 0; y < lastAsciiGrid.length; y++) {
         for (let x = 0; x < lastAsciiGrid[0].length; x++) {
@@ -192,7 +207,11 @@ saveImageBtn.onclick = function() {
             } else {
                 tmpCtx.fillStyle = "#fff";
             }
-            tmpCtx.fillText(char, x * charWidth, y * charHeight);
+            tmpCtx.fillText(
+                char,
+                x * charWidth * scale,
+                y * charHeight * scale
+            );
         }
     }
     const url = tmpCanvas.toDataURL("image/png");
