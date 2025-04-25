@@ -14,14 +14,17 @@
             padding: 10px;
         }
         #ascii { 
+            text-align: left;
+        }
+        #ascii-pre {
+            display: inline-block;
             white-space: pre;
             line-height: 1em;
             margin: 0 auto;
-            text-align: left;
-            max-width: 100vw;
             font-family: monospace;
             font-size: 16px; /* 初期値、JSで上書き */
             letter-spacing: 0;
+            max-width: 100vw;
         }
         input[type=range] { width: 300px; }
         .control-group { margin: 15px 0; }
@@ -47,12 +50,13 @@
         </label>
     </div>
     <canvas id="canvas" style="display:none;"></canvas>
-    <div id="ascii"></div>
+    <div id="ascii"><pre id="ascii-pre"></pre></div>
     <script>
         const fileInput = document.getElementById('fileInput');
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const asciiDiv = document.getElementById('ascii');
+        const asciiPre = document.getElementById('ascii-pre');
         const brightnessControl = document.getElementById('brightness');
         const fontSizeControl = document.getElementById('fontSize');
         const edgeDetectionControl = document.getElementById('edgeDetection');
@@ -84,8 +88,8 @@
             if (!originalImage) return;
             const fontSize = parseInt(fontSizeControl.value) * 8;
             const containerWidth = window.innerWidth - 20;
-            asciiDiv.style.fontSize = fontSize + 'px';
-            asciiDiv.style.maxWidth = containerWidth + 'px';
+            asciiPre.style.fontSize = fontSize + 'px';
+            asciiPre.style.maxWidth = containerWidth + 'px';
         }
 
         function applyEdgeDetection(imageData) {
@@ -127,10 +131,10 @@
             if (!originalImage) return;
             const screenWidth = window.innerWidth - 40;
             const fontSize = parseInt(fontSizeControl.value) * 8;
-            asciiDiv.style.fontSize = fontSize + 'px';
-            asciiDiv.style.lineHeight = '1em';
-            asciiDiv.style.letterSpacing = '0';
-            asciiDiv.style.maxWidth = (window.innerWidth - 20) + 'px';
+            asciiPre.style.fontSize = fontSize + 'px';
+            asciiPre.style.lineHeight = '1em';
+            asciiPre.style.letterSpacing = '0';
+            asciiPre.style.maxWidth = (window.innerWidth - 20) + 'px';
             const charWidth = fontSize * 0.6;
             const maxChars = Math.floor(screenWidth / charWidth);
             const scale = maxChars / originalImage.width;
@@ -144,8 +148,8 @@
             }
             const brightness = parseFloat(brightnessControl.value);
             const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            let ascii = '';
-            let asciiHTML = '';
+
+            let result = '';
             for (let y = 0; y < imgData.height; y += 2) {
                 let line = '';
                 for (let x = 0; x < imgData.width; x++) {
@@ -156,21 +160,16 @@
                     const avg = ((r + g + b) / 3) * brightness;
                     const charIndex = Math.floor((avg / 255) * (asciiChars.length - 1));
                     const char = asciiChars[Math.min(Math.max(charIndex, 0), asciiChars.length - 1)];
-                    ascii += char;
                     if (colorizeControl.checked) {
-                        line += `<span style="color:rgb(${r},${g},${b})">${char === ' ' ? '&nbsp;' : char}</span>`;
+                        line += `<span style=\"color:rgb(${r},${g},${b})\">${char === ' ' ? '&nbsp;' : char}</span>`;
                     } else {
                         line += char;
                     }
                 }
-                ascii += '\n';
-                asciiHTML += line + '<br>';
+                result += line + '\\n';
             }
-            if (colorizeControl.checked) {
-                asciiDiv.innerHTML = asciiHTML;
-            } else {
-                asciiDiv.textContent = ascii;
-            }
+            // 改行処理
+            asciiPre.innerHTML = result.replace(/\\n/g, '\\n');
             adjustAsciiWidth();
         }
     </script>
