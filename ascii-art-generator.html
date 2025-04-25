@@ -5,7 +5,16 @@
     <title>ASCII Art Generator</title>
     <style>
         body { background: #000; color: #fff; font-family: monospace; text-align: center; }
-        #ascii { white-space: pre; line-height: 1em; margin: 0 auto; text-align: left; max-width: 100vw; font-family: monospace; font-size: 16px; }
+        #ascii { 
+            display: inline-block;
+            white-space: pre;
+            line-height: 1em;
+            margin: 0 auto;
+            text-align: left;
+            font-family: monospace;
+            font-size: 16px;
+            letter-spacing: 0;
+        }
         input[type=range] { width: 300px; }
         .control-group { margin: 15px 0; }
     </style>
@@ -31,7 +40,7 @@
         const edgeDetectionControl = document.getElementById('edgeDetection');
         const colorizeControl = document.getElementById('colorize');
         const asciiChars = Array.from({ length: 95 }, (_, i) => String.fromCharCode(i + 32)).reverse();
-        let originalImage = null;
+        let originalImage = null, lastWidth = 0;
 
         fileInput.onchange = function(e) {
             const file = fileInput.files[0];
@@ -51,14 +60,12 @@
         fontSizeControl.oninput = generateAscii;
         edgeDetectionControl.onchange = generateAscii;
         colorizeControl.onchange = generateAscii;
-        window.addEventListener('resize', adjustAsciiWidth);
+        window.addEventListener('resize', generateAscii); // 重要：幅を再計算
 
-        function adjustAsciiWidth() {
-            if (!originalImage) return;
-            const fontSize = parseInt(fontSizeControl.value) * 8;
-            const containerWidth = window.innerWidth - 20;
+        function adjustAsciiWidth(widthPx, fontSize) {
             asciiDiv.style.fontSize = fontSize + 'px';
-            asciiDiv.style.maxWidth = containerWidth + 'px';
+            asciiDiv.style.width = widthPx + 'px';
+            asciiDiv.style.maxWidth = widthPx + 'px';
         }
 
         function applyEdgeDetection(imageData) {
@@ -81,10 +88,6 @@
             if (!originalImage) return;
             const screenWidth = window.innerWidth - 40;
             const fontSize = parseInt(fontSizeControl.value) * 8;
-            asciiDiv.style.fontSize = fontSize + 'px';
-            asciiDiv.style.lineHeight = '1em';
-            asciiDiv.style.letterSpacing = '0';
-            asciiDiv.style.maxWidth = (window.innerWidth - 20) + 'px';
             const charWidth = fontSize * 0.6;
             const maxChars = Math.floor(screenWidth / charWidth);
             const scale = maxChars / originalImage.width;
@@ -116,12 +119,15 @@
                 asciiText += '\n';
                 asciiHtml += '<br>';
             }
+            // 必ず表示幅をpxで固定
+            const containerWidth = Math.floor(maxChars * charWidth);
+            adjustAsciiWidth(containerWidth, fontSize);
+
             if (colorizeControl.checked) {
                 asciiDiv.innerHTML = asciiHtml;
             } else {
                 asciiDiv.textContent = asciiText;
             }
-            adjustAsciiWidth();
         }
     </script>
 </body>
