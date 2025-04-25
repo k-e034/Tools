@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>ASCII Art Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 body { background: #000; color: #fff; font-family: monospace; text-align: center; }
 #ascii {
@@ -30,7 +31,7 @@ button { font-size: 1em; padding: 4px 16px; }
 <div class="control-group"><input type="file" id="fileInput"></div>
 <div class="control-group">
     文字サイズ（px）:
-    <input type="range" id="fontSize" min="0.5" max="16" step="0.5" value="8">
+    <input type="range" id="fontSize" min="0.5" max="16" step="0.1" value="8.0">
     <span id="fontSizeValue">8.0</span> px
 </div>
 <div class="control-group">
@@ -42,7 +43,8 @@ button { font-size: 1em; padding: 4px 16px; }
     <label><input type="checkbox" id="colorize"> カラライズを有効化</label>
 </div>
 <div class="control-group">
-    <button id="saveImage">画像として保存</button>
+    <button id="saveImage">PNG画像として保存</button>
+    <button id="savePDF">PDFとして保存</button>
 </div>
 <canvas id="canvas" style="display:none;"></canvas>
 <div id="ascii"></div>
@@ -57,11 +59,12 @@ const brightnessControl = document.getElementById('brightness');
 const edgeDetectionControl = document.getElementById('edgeDetection');
 const colorizeControl = document.getElementById('colorize');
 const saveImageBtn = document.getElementById('saveImage');
+const savePDFBtn = document.getElementById('savePDF');
 const asciiChars = Array.from({ length: 95 }, (_, i) => String.fromCharCode(i + 32)).reverse();
 let originalImage = null;
 let lastAsciiGrid = [];
 let lastColorGrid = [];
-let lastFontSize = 10;
+let lastFontSize = 8.0;
 
 fileInput.onchange = function(e) {
     const file = fileInput.files[0];
@@ -113,7 +116,6 @@ function generateAscii() {
     const screenWidth = window.innerWidth - 40;
     const fontSize = parseFloat(fontSizeControl.value);
     lastFontSize = fontSize;
-    // アスペクト比補正：縦横比0.5（2行で1文字分の高さ）
     const charWidth = fontSize * 0.6;
     const maxChars = Math.floor(screenWidth / charWidth);
     const scale = maxChars / originalImage.width;
@@ -201,6 +203,37 @@ saveImageBtn.onclick = function() {
     document.body.removeChild(a);
 };
 
+savePDFBtn.onclick = function() {
+    if (!lastAsciiGrid.length) return;
+    const fontSize = lastFontSize;
+    const charWidth = fontSize * 0.6;
+    const charHeight = fontSize * 2;
+    // PDF用ページサイズ自動計算
+    const pdfWidth = Math.ceil(lastAsciiGrid[0].length * charWidth * 0.75); // 1pt = 1/72in, 1px ≒ 0.75pt
+    const pdfHeight = Math.ceil(lastAsciiGrid.length * charHeight * 0.75);
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({
+        orientation: (pdfWidth > pdfHeight) ? "l" : "p",
+        unit: "pt",
+        format: [pdfWidth, pdfHeight]
+    });
+    pdf.setFillColor(0, 0, 0);
+    pdf.rect(0, 0, pdfWidth, pdfHeight, "F");
+    pdf.setFont("Courier", "bold");
+    for (let y = 0; y < lastAsciiGrid.length; y++) {
+        for (let x = 0; x < lastAsciiGrid[0].length; x++) {
+            const char = lastAsciiGrid[y][x];
+            if (colorizeControl.checked) {
+                const [r, g, b] = lastColorGrid[y][x];
+                pdf.setTextColor(r, g, b);
+            } else {
+                pdf.setTextColor(255, 255, 255);
+            }
+            pdf.text(char, x * charWidth * 0.75, (y + 1) * charHeight * 0.75); // 0.75: px→pt変換
+        }
+    }
+    pdf.save('ascii_art.pdf');
+};
 </script>
 </body>
 </html>
