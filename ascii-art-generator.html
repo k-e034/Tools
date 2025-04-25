@@ -48,6 +48,7 @@ button { font-size: 1em; padding: 4px 16px; }
 </div>
 <canvas id="canvas" style="display:none;"></canvas>
 <div id="ascii"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 const fileInput = document.getElementById('fileInput');
 const canvas = document.getElementById('canvas');
@@ -206,12 +207,15 @@ saveImageBtn.onclick = function() {
 savePDFBtn.onclick = function() {
     if (!lastAsciiGrid.length) return;
     const fontSize = lastFontSize;
+    // 1pt = 1/72inch、1px ≒ 0.75pt（一般的ディスプレイ基準）
+    const px2pt = 0.75;
     const charWidth = fontSize * 0.6;
     const charHeight = fontSize * 2;
-    // PDF用ページサイズ自動計算
-    const pdfWidth = Math.ceil(lastAsciiGrid[0].length * charWidth * 0.75); // 1pt = 1/72in, 1px ≒ 0.75pt
-    const pdfHeight = Math.ceil(lastAsciiGrid.length * charHeight * 0.75);
+    const cols = lastAsciiGrid[0].length, rows = lastAsciiGrid.length;
+    const pdfWidth = cols * charWidth * px2pt;
+    const pdfHeight = rows * charHeight * px2pt;
     const { jsPDF } = window.jspdf;
+    // ページサイズは「ASCIIアートそのまま」フィット
     const pdf = new jsPDF({
         orientation: (pdfWidth > pdfHeight) ? "l" : "p",
         unit: "pt",
@@ -220,8 +224,9 @@ savePDFBtn.onclick = function() {
     pdf.setFillColor(0, 0, 0);
     pdf.rect(0, 0, pdfWidth, pdfHeight, "F");
     pdf.setFont("Courier", "bold");
-    for (let y = 0; y < lastAsciiGrid.length; y++) {
-        for (let x = 0; x < lastAsciiGrid[0].length; x++) {
+    pdf.setFontSize(fontSize * px2pt);
+    for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
             const char = lastAsciiGrid[y][x];
             if (colorizeControl.checked) {
                 const [r, g, b] = lastColorGrid[y][x];
@@ -229,7 +234,8 @@ savePDFBtn.onclick = function() {
             } else {
                 pdf.setTextColor(255, 255, 255);
             }
-            pdf.text(char, x * charWidth * 0.75, (y + 1) * charHeight * 0.75); // 0.75: px→pt変換
+            // x, y座標は「左上基準、グリッドごと」に配置
+            pdf.text(char, x * charWidth * px2pt, (y + 1) * charHeight * px2pt, { baseline: 'bottom' });
         }
     }
     pdf.save('ascii_art.pdf');
