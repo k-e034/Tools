@@ -1,35 +1,178 @@
-function generateAscii() {
-    if (!originalImage) return;
-    // ...前略...
-    const brightness = parseFloat(brightnessControl.value);
-    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ASCII Art Generator</title>
+    <style>
+        body { 
+            background: #000; 
+            color: #fff; 
+            font-family: monospace; 
+            text-align: center;
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 10px;
+        }
+        #ascii { 
+            white-space: pre;
+            line-height: 1em;
+            margin: 0 auto;
+            text-align: left;
+            max-width: 100vw;
+            font-family: monospace;
+            font-size: 16px; /* 初期値、JSで上書き */
+            letter-spacing: 0;
+        }
+        input[type=range] { width: 300px; }
+        .control-group { margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <h1>ASCII Art Generator</h1>
+    <div class="control-group">
+        <input type="file" id="fileInput">
+    </div>
+    <div class="control-group">
+        明るさ調整：<input type="range" id="brightness" min="0" max="2" step="0.1" value="1">
+    </div>
+    <div class="control-group">
+        解像度調整：<input type="range" id="fontSize" min="1" max="4" step="0.2" value="2">
+    </div>
+    <div class="control-group">
+        <label>
+            <input type="checkbox" id="edgeDetection"> エッジ検出を有効化
+        </label>
+        <label>
+            <input type="checkbox" id="colorize"> カラライズを有効化
+        </label>
+    </div>
+    <canvas id="canvas" style="display:none;"></canvas>
+    <div id="ascii"></div>
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const asciiDiv = document.getElementById('ascii');
+        const brightnessControl = document.getElementById('brightness');
+        const fontSizeControl = document.getElementById('fontSize');
+        const edgeDetectionControl = document.getElementById('edgeDetection');
+        const colorizeControl = document.getElementById('colorize');
+        const asciiChars = Array.from({ length: 95 }, (_, i) => String.fromCharCode(i + 32)).reverse();
+        let originalImage = null;
 
-    let ascii = '';
-    let asciiHTML = '';
-    for (let y = 0; y < imgData.height; y += 2) {
-        let line = '';
-        for (let x = 0; x < imgData.width; x++) {
-            const offset = (y * imgData.width + x) * 4;
-            const r = imgData.data[offset];
-            const g = imgData.data[offset + 1];
-            const b = imgData.data[offset + 2];
-            const avg = ((r + g + b) / 3) * brightness;
-            const charIndex = Math.floor((avg / 255) * (asciiChars.length - 1));
-            const char = asciiChars[Math.min(Math.max(charIndex, 0), asciiChars.length - 1)];
-            ascii += char;
-            if (colorizeControl.checked) {
-                line += `<span style="color:rgb(${r},${g},${b})">${char === ' ' ? '&nbsp;' : char}</span>`;
-            } else {
-                line += char;
+        fileInput.onchange = function(e) {
+            const file = fileInput.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    originalImage = img;
+                    generateAscii();
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+        brightnessControl.oninput = generateAscii;
+        fontSizeControl.oninput = generateAscii;
+        edgeDetectionControl.onchange = generateAscii;
+        colorizeControl.onchange = generateAscii;
+        window.addEventListener('resize', adjustAsciiWidth);
+
+        function adjustAsciiWidth() {
+            if (!originalImage) return;
+            const fontSize = parseInt(fontSizeControl.value) * 8;
+            const containerWidth = window.innerWidth - 20;
+            asciiDiv.style.fontSize = fontSize + 'px';
+            asciiDiv.style.maxWidth = containerWidth + 'px';
+        }
+
+        function applyEdgeDetection(imageData) {
+            const width = imageData.width;
+            const height = imageData.height;
+            const data = imageData.data;
+            const originalData = new Uint8ClampedArray(data);
+            for (let y = 1; y < height - 1; y++) {
+                for (let x = 1; x < width - 1; x++) {
+                    const idx = (y * width + x) * 4;
+                    const topLeft = getGrayscale(originalData, width, x - 1, y - 1);
+                    const top = getGrayscale(originalData, width, x, y - 1);
+                    const topRight = getGrayscale(originalData, width, x + 1, y - 1);
+                    const left = getGrayscale(originalData, width, x - 1, y);
+                    const right = getGrayscale(originalData, width, x + 1, y);
+                    const bottomLeft = getGrayscale(originalData, width, x - 1, y + 1);
+                    const bottom = getGrayscale(originalData, width, x, y + 1);
+                    const bottomRight = getGrayscale(originalData, width, x + 1, y + 1);
+                    const gx = topLeft * -1 + top * 0 + topRight * 1 +
+                        left * -2 + right * 2 +
+                        bottomLeft * -1 + bottom * 0 + bottomRight * 1;
+                    const gy = topLeft * -1 + top * -2 + topRight * -1 +
+                        left * 0 + right * 0 +
+                        bottomLeft * 1 + bottom * 2 + bottomRight * 1;
+                    const edge = Math.sqrt(gx * gx + gy * gy);
+                    const edgeValue = Math.min(255, edge);
+                    data[idx] = edgeValue;
+                    data[idx + 1] = edgeValue;
+                    data[idx + 2] = edgeValue;
+                }
             }
         }
-        ascii += '\n';
-        asciiHTML += line + '<br>';
-    }
-    if (colorizeControl.checked) {
-        asciiDiv.innerHTML = asciiHTML;
-    } else {
-        asciiDiv.textContent = ascii;
-    }
-    adjustAsciiWidth();
-}
+        function getGrayscale(data, width, x, y) {
+            const idx = (y * width + x) * 4;
+            return (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+        }
+
+        function generateAscii() {
+            if (!originalImage) return;
+            const screenWidth = window.innerWidth - 40;
+            const fontSize = parseInt(fontSizeControl.value) * 8;
+            asciiDiv.style.fontSize = fontSize + 'px';
+            asciiDiv.style.lineHeight = '1em';
+            asciiDiv.style.letterSpacing = '0';
+            asciiDiv.style.maxWidth = (window.innerWidth - 20) + 'px';
+            const charWidth = fontSize * 0.6;
+            const maxChars = Math.floor(screenWidth / charWidth);
+            const scale = maxChars / originalImage.width;
+            canvas.width = maxChars;
+            canvas.height = Math.floor(originalImage.height * scale);
+            ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
+            if (edgeDetectionControl.checked) {
+                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                applyEdgeDetection(imgData);
+                ctx.putImageData(imgData, 0, 0);
+            }
+            const brightness = parseFloat(brightnessControl.value);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            let ascii = '';
+            let asciiHTML = '';
+            for (let y = 0; y < imgData.height; y += 2) {
+                let line = '';
+                for (let x = 0; x < imgData.width; x++) {
+                    const offset = (y * imgData.width + x) * 4;
+                    const r = imgData.data[offset];
+                    const g = imgData.data[offset + 1];
+                    const b = imgData.data[offset + 2];
+                    const avg = ((r + g + b) / 3) * brightness;
+                    const charIndex = Math.floor((avg / 255) * (asciiChars.length - 1));
+                    const char = asciiChars[Math.min(Math.max(charIndex, 0), asciiChars.length - 1)];
+                    ascii += char;
+                    if (colorizeControl.checked) {
+                        line += `<span style="color:rgb(${r},${g},${b})">${char === ' ' ? '&nbsp;' : char}</span>`;
+                    } else {
+                        line += char;
+                    }
+                }
+                ascii += '\n';
+                asciiHTML += line + '<br>';
+            }
+            if (colorizeControl.checked) {
+                asciiDiv.innerHTML = asciiHTML;
+            } else {
+                asciiDiv.textContent = ascii;
+            }
+            adjustAsciiWidth();
+        }
+    </script>
+</body>
+</html>
