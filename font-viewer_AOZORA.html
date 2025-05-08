@@ -5,48 +5,70 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>フォント表示確認ツール</title>
     <style>
+        :root {
+            /* デフォルト: 宇宙・スターウォーズ風 */
+            --main-bg: #0a0a1a;
+            --main-fg: #e0e6ff;
+            --accent: #00ffe7;
+            --panel-bg: rgba(20,30,60,0.7);
+            --panel-border: #00ffe7;
+        }
+        html, body {
+            position: static !important;
+            height: 100vh !important;
+            width: 100vw !important;
+            min-height: 100vh !important;
+            min-width: 100vw !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            background: transparent !important;
+            background-color: transparent !important;
+        }
+        body.theme-1 {
+            /* デフォルト: 何も変えない */
+        }
+        body.theme-2 {
+            background: #000 !important;
+        }
+        body.theme-2 #displayArea {
+            color: #ffd900 !important;
+        }
+        body.theme-3 {
+            background: linear-gradient(180deg, #ffb347 0%, #ffb347 70%, #2ee59d 100%) !important;
+        }
+        body.theme-3 #displayArea {
+            color: #222 !important;
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             margin: 0;
-            padding: 10px;
-            background-color: #f4f7f6;
-            display: flex;
-            flex-direction: column;
+            padding: 0;
+            background-color: var(--main-bg);
+            width: 100vw;
+            height: 100vh;
             min-height: 100vh;
+            min-width: 100vw;
             box-sizing: border-box;
-            color: #333;
+            color: var(--main-fg);
+            overflow: hidden;
+            position: relative;
         }
 
         .container {
-            background-color: #ffffff;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            margin-bottom: 15px;
+            display: none;
         }
 
         h2 {
-            margin-top: 0;
-            color: #007bff;
+            display: none;
         }
 
         .controls {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin-bottom: 15px;
+            display: none;
         }
 
         .control-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .control-group label {
-            margin-bottom: 8px;
-            font-weight: bold;
-            font-size: 0.95em;
-            color: #555;
+            display: none;
         }
 
         input[type="file"],
@@ -84,8 +106,8 @@
         }
 
         button {
-            background-color: #007bff;
-            color: white;
+            background-color: var(--accent);
+            color: var(--main-fg);
             border: none;
             cursor: pointer;
             transition: background-color 0.3s;
@@ -93,7 +115,8 @@
         }
 
         button:hover {
-            background-color: #0056b3;
+            background-color: var(--accent);
+            color: #fff;
         }
 
         .sample-buttons {
@@ -113,28 +136,39 @@
 
 
         #displayArea {
-            width: 100%;
-            min-height: 250px;
-            border: 1px solid #ced4da;
-            padding: 15px;
-            overflow-wrap: break-word;
-            word-break: break-all;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 90vw;
+            min-height: 0;
+            min-width: 0;
+            max-width: 100vw;
+            max-height: 100vh;
+            border: none;
+            padding: 4vw;
+            overflow: auto;
             line-height: 1.7;
             box-sizing: border-box;
-            background-color: #fff;
-            color: #000;
-            border-radius: 4px;
-            transition: background-color 0.3s, color 0.3s;
+            background: transparent !important;
+            background-color: transparent !important;
+            color: #222;
+            border-radius: 0;
+            box-shadow: none;
+            transition: color 0.3s;
+            font-size: 40px;
+            outline: none;
+            z-index: 1;
+            user-select: text;
+            cursor: text;
+            display: block;
+            margin: auto;
+            text-align: left;
         }
-
-        #displayArea.vertical-rl {
-            writing-mode: vertical-rl;
-            -webkit-writing-mode: vertical-rl;
-            -ms-writing-mode: tb-rl;
-            text-orientation: mixed;
-            overflow-wrap: normal;
-            word-break: normal; /* In vertical mode, 'break-all' might not be ideal for Japanese */
-            white-space: pre-wrap; /* Ensure newlines are respected in vertical mode */
+        #displayArea[contenteditable="true"]:empty:before {
+            content: 'ここにテキストを直接入力・編集できます';
+            color: #bbb;
+            font-size: 0.7em;
         }
 
         .font-not-loaded-placeholder {
@@ -159,8 +193,8 @@
         /* ② OpenType ruby フィーチャを強制的に ON  
             （ブラウザによっては既定で有効ですが、念のため） */
         #displayArea {
-            font-feature-settings: "ruby";
-            -webkit-font-feature-settings: "ruby";
+            /* font-feature-settings: "ruby"; */
+            /* -webkit-font-feature-settings: "ruby"; */
         }
         /* ③ ルビのサイズは本文サイズの 50 % – スライダー連動にするなら変数化が便利 */
         :root { --ruby-scale: .5; }
@@ -169,7 +203,15 @@
         /* ④ 縦書き時に "横に付く" ルビを指定  
             ※ Safari/Firefox は `inter-character`、Chrome は実験的機能 */
         #displayArea.vertical-rl {
-            ruby-position: inter-character;
+            writing-mode: vertical-rl;
+            -webkit-writing-mode: vertical-rl;
+            -ms-writing-mode: tb-rl;
+            text-orientation: mixed;
+            width: 40vw;
+            height: 100vh;
+        }
+        #displayArea:not(.vertical-rl) {
+            flex-direction: row;
         }
 
 
@@ -192,109 +234,129 @@
             }
         }
 
+        #bg3dCanvas {
+            position: fixed;
+            z-index: -1;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            background: transparent !important;
+        }
+
+        body.theme-1 #floatingBtns button {
+            background-color: #00ffe7 !important;
+            color: #222 !important;
+        }
+        body.theme-2 #floatingBtns button {
+            background-color: #ffb300 !important;
+            color: #fff !important;
+        }
+        body.theme-3 #floatingBtns button {
+            background-color: #2e8b57 !important;
+            color: #222 !important;
+        }
+
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h2>フォント表示確認ツール</h2>
-        <p>お手持ちのOpenTypeフォント(.otf)、TrueTypeフォント(.ttf)、WOFF/WOFF2フォントをアップロードして、表示を確認できます。</p>
+    <!-- 背景3Dグリッド用div（Three.jsで波動グリッドを描画） -->
+    <div id="bg3dCanvas" style="position:fixed;z-index:-1;top:0;left:0;width:100vw;height:100vh;pointer-events:none;"></div>
+
+    <!-- メイン表示エリア（直接編集可） -->
+    <div id="displayArea" contenteditable="true" spellcheck="false"></div>
+
+    <!-- Three.js 3Dテキスト用Canvas（重ねて表示） -->
+    <div id="displayArea3DContainer" style="position:absolute;left:5vw;top:5vh;width:90vw;height:90vh;pointer-events:none;z-index:5;">
+        <canvas id="displayArea3D" style="width:100%;height:100%;display:block;"></canvas>
     </div>
 
-    <div class="container controls">
-        <div class="control-group">
-            <label for="fontFile">1. フォントファイルを選択:</label>
-            <input type="file" id="fontFile" accept=".otf,.ttf,.woff,.woff2">
-        </div>
-
-        <div class="control-group">
-            <label for="inputText">2. 表示するテキスト:</label>
-            <textarea id="inputText">吾輩は猫である。名前はまだ無い。どこで生れたかとんと見当がつかぬ。</textarea>
-            <div class="sample-buttons">
-                <button id="sampleText1Btn">例文1</button>
-                <button id="sampleText2Btn">例文2</button>
-                <button id="sampleText3Btn">例文3</button>
-            </div>
-        </div>
-
-        <div class="control-group">
-            <label for="fontSize">フォントサイズ: <span id="fontSizeValueDisplay">40</span>px</label>
-            <input type="range" id="fontSize" min="10" max="200" value="40">
-        </div>
-
-        <div class="control-group">
-            <label for="toggleWritingModeBtn">表示方向:</label>
-            <button id="toggleWritingModeBtn">縦書きにする</button>
-        </div>
-
-        <div class="control-group">
-            <label for="textColor">文字色:</label>
-            <input type="color" id="textColor" value="#000000">
-        </div>
-
-        <div class="control-group">
-            <label for="bgColor">背景色:</label>
-            <input type="color" id="bgColor" value="#FFFFFF">
-        </div>
+    <!-- フローティング設定ボタン群 -->
+    <div id="floatingBtns" style="position:fixed;right:2vw;bottom:2vh;z-index:100;display:flex;flex-direction:column;gap:12px;">
+        <input type="file" id="fontFile" accept=".otf,.ttf,.woff,.woff2" style="display:none;">
+        <button id="fontFileBtn" title="フォントを選択">&#128193;</button>
+        <button id="themeBtn" title="テーマ切替">&#9881;</button>
+        <button id="writingModeBtn" title="縦書き/横書き切替">縦</button>
+        <button id="opentypeBtn" title="OpenType機能">OT</button>
     </div>
 
-    <div class="control-group">
-        <label for="aozoraSearch">3. 青空文庫で検索:</label>
-        <input id="aozoraSearch" type="text" placeholder="作品名・著者名など">
-        <button id="aozoraSearchBtn">検索</button>
-      
-        <!-- 検索結果を並べるだけなので <select> が最もコード量が少ない -->
-        <select id="aozoraResults" size="6" style="margin-top:8px;"></select>
-      
-        <button id="aozoraLoadBtn" disabled style="margin-top:6px;">読み込む</button>
-      </div>
-
-    <div class="container">
-        <label for="displayArea" style="font-weight:bold; display:block; margin-bottom:8px;">表示エリア:</label>
-        <div id="displayArea">
-            <span class="font-not-loaded-placeholder">ここにテキストが表示されます。<br>フォントファイルをアップロードしてください。</span>
-        </div>
+    <!-- OpenType機能パネル（ミニマルなカンマ区切り入力） -->
+    <div id="opentypePanel" style="position:fixed;right:60px;bottom:2vh;z-index:200;background:var(--panel-bg);color:var(--main-fg);border-radius:12px;box-shadow:0 2px 12px #0008;padding:10px 16px;display:none;">
+        <label style="font-size:0.95em;">OpenType機能（カンマ区切りで入力）</label>
+        <input id="opentypeInput" type="text" placeholder="例: liga, kern, ss01" style="width:180px;font-size:1em;padding:6px 8px;border-radius:6px;border:1px solid #ccc;outline:none;">
     </div>
 
+    <!-- Three.js CDN（必ず自作スクリプトより前に） -->
+    <script src="https://unpkg.com/three@0.149.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.149.0/examples/js/geometries/TextGeometry.js"></script>
+    <script src="https://unpkg.com/three@0.149.0/examples/js/loaders/FontLoader.js"></script>
     <script>
+    window.onload = function() {
         const fontFileInput = document.getElementById('fontFile');
-        const inputText = document.getElementById('inputText');
-        const fontSizeInput = document.getElementById('fontSize');
-        const fontSizeValueDisplay = document.getElementById('fontSizeValueDisplay');
-        const toggleWritingModeButton = document.getElementById('toggleWritingModeBtn');
-        const textColorInput = document.getElementById('textColor');
-        const bgColorInput = document.getElementById('bgColor');
+        const fontFileBtn = document.getElementById('fontFileBtn');
+        const themeBtn = document.getElementById('themeBtn');
+        const writingModeBtn = document.getElementById('writingModeBtn');
+        const opentypeBtn = document.getElementById('opentypeBtn');
+        const opentypePanel = document.getElementById('opentypePanel');
+        const opentypeInput = document.getElementById('opentypeInput');
         const displayArea = document.getElementById('displayArea');
-
-        const sampleText1Button = document.getElementById('sampleText1Btn');
-        const sampleText2Button = document.getElementById('sampleText2Btn');
-        const sampleText3Button = document.getElementById('sampleText3Btn');
-        const AOZORA_API = "https://www.aozorahack.net/api/v0.1";        // Pubserver (非公式)
-        const AOZORA_CORS = url => `https://corsproxy.io/?${encodeURIComponent(url)}`;
-        // ↑ 万一 CORS で弾かれる場合は fetch(AOZORA_CORS(realUrl))
+        const AOZORA_API = "https://pubserver2.herokuapp.com/api/v0.1"; // CORS対応済みAPI
 
         let currentFontObjectURL = null;
         let isVerticalWriting = false;
         let customFontStyleElement = null;
+        let activeOpenTypeFeatures = '';
+        let isComposing = false;
 
         const FONT_FAMILY_NAME = 'UserCustomFont';
 
         function initializeApp() {
             updateDisplayArea();
-            
             fontFileInput.addEventListener('change', handleFontFileSelection);
-            inputText.addEventListener('input', updateDisplayArea);
-            fontSizeInput.addEventListener('input', handleFontSizeChange);
-            toggleWritingModeButton.addEventListener('click', toggleWritingMode);
-            textColorInput.addEventListener('input', updateDisplayArea);
-            bgColorInput.addEventListener('input', updateDisplayArea);
-
-            sampleText1Button.addEventListener('click', () => loadSampleText(1));
-            sampleText2Button.addEventListener('click', () => loadSampleText(2));
-            sampleText3Button.addEventListener('click', () => loadSampleText(3));
-            
-            // Set initial font size display
-            fontSizeValueDisplay.textContent = fontSizeInput.value;
+            fontFileBtn.addEventListener('click', ()=>fontFileInput.click());
+            // テーマ切替ボタン
+            const themes = ['theme-1','theme-2','theme-3'];
+            themeBtn.addEventListener('click', ()=>{
+                let now = themes.findIndex(t=>document.body.classList.contains(t));
+                let next = (now+1)%themes.length;
+                document.body.classList.remove(...themes);
+                document.body.classList.add(themes[next]);
+                setBgWaveTheme(themes[next]);
+                updateTextColorAuto();
+            });
+            // 縦書き/横書き切替
+            writingModeBtn.addEventListener('click', ()=>{
+                isVerticalWriting = !isVerticalWriting;
+                writingModeBtn.textContent = isVerticalWriting ? '横' : '縦';
+                updateDisplayArea();
+            });
+            // OpenType機能パネル
+            opentypeBtn.addEventListener('click', ()=>{
+                opentypePanel.style.display = opentypePanel.style.display==='flex' ? 'none' : 'flex';
+            });
+            opentypeInput.addEventListener('input', ()=>{
+                activeOpenTypeFeatures = opentypeInput.value;
+                updateOpenTypeFeatures();
+            });
+            // IME入力対応: compositionstart/endでフラグ管理
+            displayArea.addEventListener('compositionstart', ()=>{ isComposing = true; });
+            displayArea.addEventListener('compositionend', ()=>{
+                isComposing = false;
+                updateDisplayArea();
+                update3DTextFromInput();
+            });
+            // 表示エリア直接編集
+            displayArea.addEventListener('input', ()=>{
+                if(!isComposing) {
+                    updateDisplayArea();
+                    update3DTextFromInput();
+                }
+            });
+            // 初期テキスト
+            displayArea.innerHTML = '吾輩は猫である。名前はまだ無い。どこで生れたかとんと見当がつかぬ。';
+            updateTextColorAuto();
         }
 
         // フォントサイズ変更時にルビサイズも追従
@@ -306,21 +368,55 @@
 
         // updateDisplayAreaを統合
         function updateDisplayArea() {
-            // ルビ変換
-            let html = inputText.value ? aozoraToRubyHTML(inputText.value) : "";
-            if (!html) html = '<span class="font-not-loaded-placeholder">テキストを入力してください。</span>';
+            // --- キャレット位置保存 ---
+            let sel = window.getSelection();
+            let caretOffset = 0;
+            if(sel && sel.rangeCount > 0) {
+                let range = sel.getRangeAt(0);
+                let preCaretRange = range.cloneRange();
+                preCaretRange.selectNodeContents(displayArea);
+                preCaretRange.setEnd(range.endContainer, range.endOffset);
+                caretOffset = preCaretRange.toString().length;
+            }
+            // ルビ変換（contenteditableの中身をルビHTMLに）
+            let raw = displayArea.innerText || '';
+            let html = raw ? aozoraToRubyHTML(raw) : '';
+            // ★ここで改行を<br>に変換
+            html = html.replace(/\n/g, '<br>');
+            if (!html) html = '';
             displayArea.innerHTML = html;
-
-            // スタイル反映
-            displayArea.style.fontSize = `${fontSizeInput.value}px`;
-            displayArea.style.color = textColorInput.value;
-            displayArea.style.backgroundColor = bgColorInput.value;
-
-            if (isVerticalWriting) {
+            // --- キャレット位置復元 ---
+            function setCaretByOffset(node, offset) {
+                let stack = [node], count = 0, found = false;
+                while(stack.length && !found) {
+                    let n = stack.shift();
+                    if(n.nodeType === 3) { // text node
+                        let len = n.nodeValue.length;
+                        if(count + len >= offset) {
+                            let sel = window.getSelection();
+                            let range = document.createRange();
+                            range.setStart(n, offset - count);
+                            range.collapse(true);
+                            sel.removeAllRanges();
+                            sel.addRange(range);
+                            found = true;
+                            break;
+                        }
+                        count += len;
+                    } else if(n.childNodes && n.childNodes.length) {
+                        for(let i=0;i<n.childNodes.length;i++) stack.push(n.childNodes[i]);
+                    }
+                }
+            }
+            setCaretByOffset(displayArea, caretOffset);
+            // 書字方向
+            if(isVerticalWriting) {
                 displayArea.classList.add('vertical-rl');
             } else {
                 displayArea.classList.remove('vertical-rl');
             }
+            updateTextColorAuto();
+            updateOpenTypeFeatures();
         }
 
         function handleFontFileSelection(event) {
@@ -387,13 +483,13 @@
         }
 
         function aozoraToRubyHTML(txt) {
-            // ① ｜漢字《かな》      → <ruby><rb>漢字</rb><rt>かな</rt></ruby>
+            // ① ｜漢字《かな》      → <ruby><rb style="font-feature-settings:'ruby';-webkit-font-feature-settings:'ruby';">漢字</rb><rt>かな</rt></ruby>
             txt = txt.replace(/｜([^\s《》]+)《([^《》]+)》/g,
-                        (_,rb,rt)=>`<ruby><rb>${rb}</rb><rt>${rt}</rt></ruby>`);
+                        (_,rb,rt)=>`<ruby><rb style="font-feature-settings:'ruby';-webkit-font-feature-settings:'ruby';">${rb}</rb><rt>${rt}</rt></ruby>`);
 
             // ② 直前の語 + 《かな》 → 同様に変換（ひらがな・カタカナ・漢字の連続を語とみなす簡易版）
             txt = txt.replace(/([一-龯々〆ヵヶぁ-んァ-ヶー]+)《([^《》]+)》/g,
-                        (_,rb,rt)=>`<ruby><rb>${rb}</rb><rt>${rt}</rt></ruby>`);
+                        (_,rb,rt)=>`<ruby><rb style="font-feature-settings:'ruby';-webkit-font-feature-settings:'ruby';">${rb}</rb><rt>${rt}</rt></ruby>`);
 
             return txt;
         }
@@ -401,22 +497,79 @@
 
         // --- ② 検索処理 ----------------------
         async function searchAozora() {
-            const kw = aozoraSearch.value.trim();
-            if (!kw) return;
+            const title = aozoraTitle.value.trim();
+            const author = aozoraAuthor.value.trim();
+            if (!title && !author) return;
 
-            // タイトルと著者の両方を対象に 20 件だけ取得
-            const realUrl = `${AOZORA_API}/books?limit=20&title=/${kw}/|author=/${kw}/`;
-            const res = await fetch(AOZORA_CORS(realUrl));
-            const books = await res.json();
+            let books = [];
+            let error = false;
+            let ids = new Set();
+
+            // タイトル検索（正規表現検索）
+            if (title) {
+                try {
+                    let url = `${AOZORA_API}/books?limit=20&title=/${title}/`;
+                    url = encodeURI(url);
+                    let res = await fetch(url);
+                    if (res.ok) {
+                        let result = await res.json();
+                        result.forEach(b => {
+                            books.push(b);
+                            ids.add(b.id);
+                        });
+                    } else if (res.status === 404) {
+                        // 何もしない（該当なし）
+                    } else {
+                        error = true;
+                    }
+                } catch (e) { error = true; }
+            }
+
+            // 著者検索（正規表現検索、重複除外）
+            if (author) {
+                try {
+                    let url = `${AOZORA_API}/books?limit=20&author=/${author}/`;
+                    url = encodeURI(url);
+                    let res = await fetch(url);
+                    if (res.ok) {
+                        let result = await res.json();
+                        result.forEach(b => {
+                            if (!ids.has(b.id)) {
+                                books.push(b);
+                                ids.add(b.id);
+                            }
+                        });
+                    } else if (res.status === 404) {
+                        // 何もしない（該当なし）
+                    } else {
+                        error = true;
+                    }
+                } catch (e) { error = true; }
+            }
 
             aozoraResults.innerHTML = "";
+            if (error) {
+                const opt = document.createElement("option");
+                opt.value = "";
+                opt.textContent = "検索エラーが発生しました";
+                aozoraResults.appendChild(opt);
+                aozoraLoadBtn.disabled = true;
+                return;
+            }
+            if (!books.length) {
+                const opt = document.createElement("option");
+                opt.value = "";
+                opt.textContent = "該当なし（0件）";
+                aozoraResults.appendChild(opt);
+                aozoraLoadBtn.disabled = true;
+                return;
+            }
             books.forEach(b => {
                 const opt = document.createElement("option");
                 opt.value = b.id;
                 opt.textContent = `${b.title} / ${b.author}`;
                 aozoraResults.appendChild(opt);
             });
-
             aozoraLoadBtn.disabled = books.length === 0;
         }
 
@@ -425,9 +578,9 @@
             const id = aozoraResults.value;
             if (!id) return;
 
-            // テキストファイルは Shift_JIS の場合が多い
+            // pubserver2はCORS対応済みなので直接fetch
             const txtUrl = `${AOZORA_API}/books/${id}/content?format=txt`;
-            const buf = await (await fetch(AOZORA_CORS(txtUrl))).arrayBuffer();
+            const buf = await (await fetch(txtUrl)).arrayBuffer();
 
             // まず SJIS で試し、失敗したら UTF-8 でデコード
             let text;
@@ -443,9 +596,243 @@
 
         // Initialize the application
         initializeApp();
-        aozoraSearchBtn.addEventListener("click", searchAozora);
-        aozoraLoadBtn  .addEventListener("click", loadAozoraText);
 
+        // ics-creative/180725_three_waves風 3D波動グリッド背景
+        const bg3dDiv = document.getElementById('bg3dCanvas');
+        let bgWaveRenderer, bgWaveScene, bgWaveCamera, bgWaveMesh, bgWaveAnimId;
+        function initBgWaveGrid() {
+            // 既存Three.jsインスタンス破棄
+            if(bgWaveRenderer && bgWaveRenderer.domElement.parentNode) {
+                bgWaveRenderer.domElement.parentNode.removeChild(bgWaveRenderer.domElement);
+            }
+            bgWaveRenderer = new THREE.WebGLRenderer({alpha:true,antialias:true});
+            bgWaveRenderer.setClearColor(0x000000, 0); // 透明
+            bgWaveRenderer.setSize(window.innerWidth, window.innerHeight);
+            bg3dDiv.appendChild(bgWaveRenderer.domElement);
+            bgWaveScene = new THREE.Scene();
+            // グリッドサイズをウィンドウに合わせて動的に
+            const pxPerUnit = 10;
+            const gridW = window.innerWidth / pxPerUnit;
+            const gridH = window.innerHeight / pxPerUnit;
+            const segW = 80, segH = 40;
+            // OrthographicCameraで画面全体をカバー
+            const left = -gridW/2, right = gridW/2, top = gridH/2, bottom = -gridH/2;
+            bgWaveCamera = new THREE.OrthographicCamera(left, right, top, bottom, 1, 1000);
+            bgWaveCamera.position.set(0, 180, 180); // 高く・奥に
+            bgWaveCamera.lookAt(0, 0, 0);
+            // 波動グリッド生成
+            const geometry = new THREE.PlaneGeometry(gridW, gridH, segW, segH);
+            const material = new THREE.MeshPhongMaterial({color:0x00ffe7, emissive:0x003366, shininess:80, side:THREE.DoubleSide, wireframe:true, transparent:true, opacity:0.7});
+            bgWaveMesh = new THREE.Mesh(geometry, material);
+            bgWaveMesh.rotation.x = -Math.PI/2.1; // さらに斜め（約-86度）
+            bgWaveScene.add(bgWaveMesh);
+            // ライト
+            bgWaveScene.add(new THREE.AmbientLight(0xffffff,0.7));
+            let dirLight = new THREE.DirectionalLight(0xffffff,0.7);
+            dirLight.position.set(0,1,2);
+            bgWaveScene.add(dirLight);
+        }
+        function animateBgWave() {
+            if(!bgWaveMesh) return;
+            let t = performance.now()/1000;
+            // 波動アニメーション
+            let pos = bgWaveMesh.geometry.attributes.position;
+            for(let i=0;i<pos.count;i++){
+                let ix = i % 61, iy = Math.floor(i/61);
+                pos.setZ(i, Math.sin(t*1.2 + ix*0.3 + iy*0.5)*2.2 + Math.cos(t*0.7 + ix*0.5 - iy*0.2)*1.2);
+            }
+            pos.needsUpdate = true;
+            bgWaveRenderer.render(bgWaveScene, bgWaveCamera);
+            bgWaveAnimId = requestAnimationFrame(animateBgWave);
+        }
+        function resizeBgWave() {
+            if(bgWaveRenderer) {
+                bgWaveRenderer.setSize(window.innerWidth, window.innerHeight);
+            }
+            // グリッド・カメラも再生成
+            initBgWaveGrid();
+        }
+        // テーマ切り替え時に波の色を変える場合はここで対応可能
+        function setBgWaveTheme(theme) {
+            if(bgWaveMesh) {
+                if(theme==='theme-2') {
+                    bgWaveMesh.material.color.set('#444444'); // より黒に近いグレー
+                } else if(theme==='theme-3') {
+                    bgWaveMesh.material.color.set('#2e8b57'); // 深緑
+                } else {
+                    bgWaveMesh.material.color.set(0x00ffe7); // デフォルト
+                }
+            }
+        }
+        // 初期化・リサイズ・テーマ切替フック
+        function setupBgWaveGrid() {
+            initBgWaveGrid();
+            if(bgWaveAnimId) cancelAnimationFrame(bgWaveAnimId);
+            animateBgWave();
+            window.addEventListener('resize', resizeBgWave);
+        }
+        // 初期化
+        setupBgWaveGrid();
+
+        // 3Dテキスト描画用Three.jsセットアップ
+        let threeRenderer, threeScene, threeCamera, threeTextMesh, threeFont;
+        const displayArea3D = document.getElementById('displayArea3D');
+        const displayArea3DContainer = document.getElementById('displayArea3DContainer');
+        function initThreeText() {
+            // サイズ調整
+            displayArea3D.width = displayArea3DContainer.clientWidth;
+            displayArea3D.height = displayArea3DContainer.clientHeight;
+            // Three.js初期化
+            threeRenderer = new THREE.WebGLRenderer({canvas: displayArea3D,alpha:true,antialias:true});
+            threeRenderer.setSize(displayArea3D.width, displayArea3D.height, false);
+            threeScene = new THREE.Scene();
+            threeCamera = new THREE.PerspectiveCamera(45, displayArea3D.width/displayArea3D.height, 1, 1000);
+            threeCamera.position.set(0,0,120);
+            // 環境光
+            threeScene.add(new THREE.AmbientLight(0xffffff,0.7));
+            // 方向光
+            let dirLight = new THREE.DirectionalLight(0xffffff,0.7);
+            dirLight.position.set(0,1,2);
+            threeScene.add(dirLight);
+        }
+        // フォントロード
+        function loadThreeFont(callback) {
+            if(threeFont) { callback(); return; }
+            const loader = new THREE.FontLoader();
+            loader.load('https://cdn.jsdelivr.net/npm/three@0.149.0/examples/fonts/helvetiker_regular.typeface.json', function(font) {
+                threeFont = font;
+                callback();
+            });
+        }
+        // テーマごとの3Dテキスト色・エフェクト
+        function getThemeTextMaterial(theme) {
+            if(theme==='theme-2') {
+                return new THREE.MeshPhongMaterial({color:0xffb300,emissive:0x00cfff,specular:0xffffff,shininess:120,transparent:true,opacity:0.95});
+            } else if(theme==='theme-3') {
+                return new THREE.MeshPhongMaterial({color:0x2e8b57,emissive:0xffb347,specular:0xffcc33,shininess:40});
+            }
+            return new THREE.MeshPhongMaterial({color:0xffffff});
+        }
+        // 3Dテキスト描画
+        function renderThreeText(text) {
+            if(!threeRenderer) initThreeText();
+            if(!threeFont) { loadThreeFont(()=>renderThreeText(text)); return; }
+            // 既存メッシュ削除
+            if(threeTextMesh) { threeScene.remove(threeTextMesh); threeTextMesh.geometry.dispose(); }
+            // 既存ツタ削除
+            if(window._threeVines && Array.isArray(window._threeVines)) {
+                window._threeVines.forEach(v=>{threeScene.remove(v); v.geometry.dispose();});
+            }
+            window._threeVines = [];
+            // 既存リング削除
+            if(window._threeRings && Array.isArray(window._threeRings)) {
+                window._threeRings.forEach(r=>{threeScene.remove(r); r.geometry.dispose();});
+            }
+            window._threeRings = [];
+            // テーマ取得
+            let theme = document.body.classList.contains('theme-2') ? 'theme-2'
+                : document.body.classList.contains('theme-3') ? 'theme-3' : 'theme-1';
+            // テキストジオメトリ生成
+            let geo = new THREE.TextGeometry(text||' ', {
+                font: threeFont,
+                size: 24,
+                height: 4,
+                curveSegments: 8,
+                bevelEnabled: true,
+                bevelThickness: 1.2,
+                bevelSize: 0.8,
+                bevelSegments: 2
+            });
+            geo.center();
+            let mat = getThemeTextMaterial(theme);
+            // --- グロー（発光）エフェクト: theme-2のみ ---
+            if(theme==='theme-2') {
+                mat.emissive = new THREE.Color(0xffb300);
+                mat.emissiveIntensity = 0.7;
+            }
+            threeTextMesh = new THREE.Mesh(geo, mat);
+            threeScene.add(threeTextMesh);
+            // --- ホログラム風リング: theme-1のみ ---
+            if(theme==='theme-1') {
+                const ringCount = 2;
+                for(let i=0;i<ringCount;i++){
+                    let ringGeo = new THREE.TorusGeometry(32+i*4, 1.2+i*0.5, 16, 100);
+                    let ringMat = new THREE.MeshBasicMaterial({color:0x00ffe7,transparent:true,opacity:0.18-0.05*i});
+                    let ringMesh = new THREE.Mesh(ringGeo, ringMat);
+                    ringMesh.position.set(0,0,-2-i*2);
+                    ringMesh.rotation.x = Math.PI/2;
+                    threeScene.add(ringMesh);
+                    window._threeRings.push(ringMesh);
+                }
+            }
+
+            // アニメーション
+            let t0 = performance.now();
+            function animate() {
+                let t = (performance.now()-t0)/1000;
+                // テーマごとのアニメ
+                if(theme==='theme-2') {
+                    threeTextMesh.rotation.y = Math.sin(t*0.5)*0.2;
+                    threeTextMesh.position.z = Math.sin(t*0.7)*2;
+                    // リングを回転させる
+                    if(window._threeRings) {
+                        window._threeRings.forEach((ring,idx)=>{
+                            ring.rotation.z = t*0.3*(idx%2===0?1:-1);
+                            ring.material.opacity = 0.18-0.05*idx + 0.04*Math.sin(t*0.7+idx);
+                        });
+                    }
+                } else if(theme==='theme-3') {
+                    threeTextMesh.rotation.x = Math.sin(t*0.4)*0.1;
+                    threeTextMesh.rotation.y = Math.cos(t*0.3)*0.1;
+                    threeTextMesh.position.y = Math.sin(t*0.6)*2;
+                }
+                threeRenderer.render(threeScene, threeCamera);
+                threeTextMesh._animFrame = requestAnimationFrame(animate);
+            }
+            animate();
+        }
+        // テーマ切り替え時やテキスト変更時に3Dテキストを再描画
+        function update3DTextFromInput() {
+            let text = displayArea.innerText.split('\n')[0]; // 1行目だけ表示
+            renderThreeText(text);
+        }
+        window.addEventListener('resize', ()=>{
+            if(threeRenderer) {
+                displayArea3D.width = displayArea3DContainer.clientWidth;
+                displayArea3D.height = displayArea3DContainer.clientHeight;
+                threeRenderer.setSize(displayArea3D.width, displayArea3D.height, false);
+                threeCamera.aspect = displayArea3D.width/displayArea3D.height;
+                threeCamera.updateProjectionMatrix();
+                update3DTextFromInput();
+            }
+        });
+        // 初期描画
+        update3DTextFromInput();
+
+        // 背景色から自動で見やすい文字色を設定
+        function updateTextColorAuto() {
+            if(document.body.classList.contains('theme-2')) {
+                displayArea.style.color = '#ffd900';
+            } else if(document.body.classList.contains('theme-3')) {
+                displayArea.style.color = '#222';
+            } else {
+                displayArea.style.color = '#222';
+            }
+        }
+
+        // OpenType機能の反映
+        function updateOpenTypeFeatures() {
+            // 入力値をそのまま反映（カンマ区切りで複数指定可）
+            let feat = activeOpenTypeFeatures.split(',').map(f=>f.trim()).filter(f=>f).map(f=>/^'.*'$/.test(f)?f:`'${f}' 1`).join(',');
+            displayArea.style.fontFeatureSettings = feat;
+            displayArea.style.webkitFontFeatureSettings = feat;
+        }
+    };
     </script>
+
+    <!-- <script src="https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.min.js"></script> -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/three@0.153.0/examples/jsm/geometries/TextGeometry.min.js"></script> -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/three@0.153.0/examples/jsm/loaders/FontLoader.min.js"></script> -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/three@0.153.0/examples/fonts/helvetiker_regular.typeface.json"></script> -->
 </body>
 </html>
