@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>フォント表示確認ツール</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #f4f7f6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            box-sizing: border-box;
+            color: #333;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #007bff;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .control-group label {
+            margin-bottom: 8px;
+            font-weight: bold;
+            font-size: 0.95em;
+            color: #555;
+        }
+
+        input[type="file"],
+        textarea,
+        input[type="range"],
+        input[type="color"],
+        button {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1em;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+        
+        input[type="file"] {
+            padding: 5px; /* Adjust padding for file input */
+        }
+
+        input[type="file"]:focus,
+        textarea:focus,
+        input[type="range"]:focus,
+        input[type="color"]:focus,
+        button:focus {
+            border-color: #80bdff;
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+        }
+
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            padding: 10px 15px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .sample-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .sample-buttons button {
+            background-color: #6c757d;
+            flex-grow: 1; /* Distribute space */
+        }
+        .sample-buttons button:hover {
+            background-color: #5a6268;
+        }
+
+
+        #displayArea {
+            width: 100%;
+            min-height: 250px;
+            border: 1px solid #ced4da;
+            padding: 15px;
+            overflow-wrap: break-word;
+            word-break: break-all;
+            line-height: 1.7;
+            box-sizing: border-box;
+            background-color: #fff;
+            color: #000;
+            border-radius: 4px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        #displayArea.vertical-rl {
+            writing-mode: vertical-rl;
+            -webkit-writing-mode: vertical-rl;
+            -ms-writing-mode: tb-rl;
+            text-orientation: mixed;
+            overflow-wrap: normal;
+            word-break: normal; /* In vertical mode, 'break-all' might not be ideal for Japanese */
+            white-space: pre-wrap; /* Ensure newlines are respected in vertical mode */
+        }
+
+        .font-not-loaded-placeholder {
+            font-style: italic;
+            color: #777;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+        }
+        
+        #fontSizeValueDisplay {
+            font-weight: normal;
+            color: #007bff;
+        }
+
+        #displayArea, #displayArea rt {
+            font-family: 'UserCustomFont', sans-serif;   /* ① 本文もルビも同フォントを優先 */
+        }
+
+        /* ② OpenType ruby フィーチャを強制的に ON  
+            （ブラウザによっては既定で有効ですが、念のため） */
+        #displayArea {
+            font-feature-settings: "ruby";
+            -webkit-font-feature-settings: "ruby";
+        }
+        /* ③ ルビのサイズは本文サイズの 50 % – スライダー連動にするなら変数化が便利 */
+        :root { --ruby-scale: .5; }
+        #displayArea rt { font-size: calc(var(--ruby-scale) * 1em); }
+
+        /* ④ 縦書き時に "横に付く" ルビを指定  
+            ※ Safari/Firefox は `inter-character`、Chrome は実験的機能 */
+        #displayArea.vertical-rl {
+            ruby-position: inter-character;
+        }
+
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .controls {
+                grid-template-columns: 1fr;
+            }
+            body {
+                padding: 8px;
+            }
+            .container {
+                padding: 12px;
+            }
+            textarea {
+                min-height: 100px;
+            }
+            #displayArea {
+                min-height: 200px;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>フォント表示確認ツール</h2>
+        <p>お手持ちのOpenTypeフォント(.otf)、TrueTypeフォント(.ttf)、WOFF/WOFF2フォントをアップロードして、表示を確認できます。</p>
+    </div>
+
+    <div class="container controls">
+        <div class="control-group">
+            <label for="fontFile">1. フォントファイルを選択:</label>
+            <input type="file" id="fontFile" accept=".otf,.ttf,.woff,.woff2">
+        </div>
+
+        <div class="control-group">
+            <label for="inputText">2. 表示するテキスト:</label>
+            <textarea id="inputText">吾輩は猫である。名前はまだ無い。どこで生れたかとんと見当がつかぬ。</textarea>
+            <div class="sample-buttons">
+                <button id="sampleText1Btn">例文1</button>
+                <button id="sampleText2Btn">例文2</button>
+                <button id="sampleText3Btn">例文3</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label for="fontSize">フォントサイズ: <span id="fontSizeValueDisplay">40</span>px</label>
+            <input type="range" id="fontSize" min="10" max="200" value="40">
+        </div>
+
+        <div class="control-group">
+            <label for="toggleWritingModeBtn">表示方向:</label>
+            <button id="toggleWritingModeBtn">縦書きにする</button>
+        </div>
+
+        <div class="control-group">
+            <label for="textColor">文字色:</label>
+            <input type="color" id="textColor" value="#000000">
+        </div>
+
+        <div class="control-group">
+            <label for="bgColor">背景色:</label>
+            <input type="color" id="bgColor" value="#FFFFFF">
+        </div>
+    </div>
+
+    <div class="control-group">
+        <label for="aozoraSearch">3. 青空文庫で検索:</label>
+        <input id="aozoraSearch" type="text" placeholder="作品名・著者名など">
+        <button id="aozoraSearchBtn">検索</button>
+      
+        <!-- 検索結果を並べるだけなので <select> が最もコード量が少ない -->
+        <select id="aozoraResults" size="6" style="margin-top:8px;"></select>
+      
+        <button id="aozoraLoadBtn" disabled style="margin-top:6px;">読み込む</button>
+      </div>
+
+    <div class="container">
+        <label for="displayArea" style="font-weight:bold; display:block; margin-bottom:8px;">表示エリア:</label>
+        <div id="displayArea">
+            <span class="font-not-loaded-placeholder">ここにテキストが表示されます。<br>フォントファイルをアップロードしてください。</span>
+        </div>
+    </div>
+
+    <script>
+        const fontFileInput = document.getElementById('fontFile');
+        const inputText = document.getElementById('inputText');
+        const fontSizeInput = document.getElementById('fontSize');
+        const fontSizeValueDisplay = document.getElementById('fontSizeValueDisplay');
+        const toggleWritingModeButton = document.getElementById('toggleWritingModeBtn');
+        const textColorInput = document.getElementById('textColor');
+        const bgColorInput = document.getElementById('bgColor');
+        const displayArea = document.getElementById('displayArea');
+
+        const sampleText1Button = document.getElementById('sampleText1Btn');
+        const sampleText2Button = document.getElementById('sampleText2Btn');
+        const sampleText3Button = document.getElementById('sampleText3Btn');
+        const AOZORA_API = "https://www.aozorahack.net/api/v0.1";        // Pubserver (非公式)
+        const AOZORA_CORS = url => `https://corsproxy.io/?${encodeURIComponent(url)}`;
+        // ↑ 万一 CORS で弾かれる場合は fetch(AOZORA_CORS(realUrl))
+
+        let currentFontObjectURL = null;
+        let isVerticalWriting = false;
+        let customFontStyleElement = null;
+
+        const FONT_FAMILY_NAME = 'UserCustomFont';
+
+        function initializeApp() {
+            updateDisplayArea();
+            
+            fontFileInput.addEventListener('change', handleFontFileSelection);
+            inputText.addEventListener('input', updateDisplayArea);
+            fontSizeInput.addEventListener('input', handleFontSizeChange);
+            toggleWritingModeButton.addEventListener('click', toggleWritingMode);
+            textColorInput.addEventListener('input', updateDisplayArea);
+            bgColorInput.addEventListener('input', updateDisplayArea);
+
+            sampleText1Button.addEventListener('click', () => loadSampleText(1));
+            sampleText2Button.addEventListener('click', () => loadSampleText(2));
+            sampleText3Button.addEventListener('click', () => loadSampleText(3));
+            
+            // Set initial font size display
+            fontSizeValueDisplay.textContent = fontSizeInput.value;
+        }
+
+        // フォントサイズ変更時にルビサイズも追従
+        function handleFontSizeChange() {
+            fontSizeValueDisplay.textContent = fontSizeInput.value;
+            document.documentElement.style.setProperty("--ruby-scale", 0.5); // お好みで変更可
+            updateDisplayArea();
+        }
+
+        // updateDisplayAreaを統合
+        function updateDisplayArea() {
+            // ルビ変換
+            let html = inputText.value ? aozoraToRubyHTML(inputText.value) : "";
+            if (!html) html = '<span class="font-not-loaded-placeholder">テキストを入力してください。</span>';
+            displayArea.innerHTML = html;
+
+            // スタイル反映
+            displayArea.style.fontSize = `${fontSizeInput.value}px`;
+            displayArea.style.color = textColorInput.value;
+            displayArea.style.backgroundColor = bgColorInput.value;
+
+            if (isVerticalWriting) {
+                displayArea.classList.add('vertical-rl');
+            } else {
+                displayArea.classList.remove('vertical-rl');
+            }
+        }
+
+        function handleFontFileSelection(event) {
+            const file = event.target.files[0];
+            
+            if (currentFontObjectURL) {
+                URL.revokeObjectURL(currentFontObjectURL); // Revoke previous object URL
+                currentFontObjectURL = null;
+            }
+            if (customFontStyleElement) {
+                customFontStyleElement.remove(); // Remove old style element
+                customFontStyleElement = null;
+            }
+            displayArea.style.fontFamily = ''; // Reset to default font
+
+            if (!file) {
+                displayArea.innerHTML = `<span class="font-not-loaded-placeholder">フォントファイルが選択されていません。</span>`;
+                return;
+            }
+
+            const allowedTypes = ['font/otf', 'font/ttf', 'font/woff', 'font/woff2'];
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+            const knownExtensions = ['otf', 'ttf', 'woff', 'woff2'];
+
+            if (!allowedTypes.includes(file.type) && !knownExtensions.includes(fileExtension)) {
+                displayArea.innerHTML = `<span class="font-not-loaded-placeholder">エラー: .otf, .ttf, .woff, .woff2 形式の<br>フォントファイルを選択してください。</span>`;
+                return;
+            }
+
+            currentFontObjectURL = URL.createObjectURL(file);
+
+            customFontStyleElement = document.createElement('style');
+            customFontStyleElement.textContent = `
+                @font-face {
+                    font-family: '${FONT_FAMILY_NAME}';
+                    src: url('${currentFontObjectURL}');
+                }
+            `;
+            document.head.appendChild(customFontStyleElement);
+            
+            displayArea.style.fontFamily = FONT_FAMILY_NAME;
+            updateDisplayArea();
+        }
+
+        function toggleWritingMode() {
+            isVerticalWriting = !isVerticalWriting;
+            toggleWritingModeButton.textContent = isVerticalWriting ? '横書きにする' : '縦書きにする';
+            updateDisplayArea();
+        }
+        
+        function loadSampleText(sampleId) {
+            switch(sampleId) {
+                case 1:
+                    inputText.value = "吾輩は猫である。名前はまだ無い。どこで生れたかとんと見当がつかぬ。何でも薄暗いじめじめした所でニャーニャー泣いていた事だけは記憶している。吾輩はここで始めて人間というものを見た。";
+                    break;
+                case 2:
+                    inputText.value = "とりなくこゑす ゆめさませ\nみよあけわたる ひんかしを\nそらいろはえて おきつへに\nほふねむれゐぬ もやのうち";
+                    break;
+                case 3:
+                    inputText.value = "これはテスト用の文章です。This is a test sentence.\nひらがな カタカナ 漢字 Alphabet 1234567890 ！？「」、。";
+                    break;
+            }
+            updateDisplayArea();
+        }
+
+        function aozoraToRubyHTML(txt) {
+            // ① ｜漢字《かな》      → <ruby><rb>漢字</rb><rt>かな</rt></ruby>
+            txt = txt.replace(/｜([^\s《》]+)《([^《》]+)》/g,
+                        (_,rb,rt)=>`<ruby><rb>${rb}</rb><rt>${rt}</rt></ruby>`);
+
+            // ② 直前の語 + 《かな》 → 同様に変換（ひらがな・カタカナ・漢字の連続を語とみなす簡易版）
+            txt = txt.replace(/([一-龯々〆ヵヶぁ-んァ-ヶー]+)《([^《》]+)》/g,
+                        (_,rb,rt)=>`<ruby><rb>${rb}</rb><rt>${rt}</rt></ruby>`);
+
+            return txt;
+        }
+
+
+        // --- ② 検索処理 ----------------------
+        async function searchAozora() {
+            const kw = aozoraSearch.value.trim();
+            if (!kw) return;
+
+            // タイトルと著者の両方を対象に 20 件だけ取得
+            const realUrl = `${AOZORA_API}/books?limit=20&title=/${kw}/|author=/${kw}/`;
+            const res = await fetch(AOZORA_CORS(realUrl));
+            const books = await res.json();
+
+            aozoraResults.innerHTML = "";
+            books.forEach(b => {
+                const opt = document.createElement("option");
+                opt.value = b.id;
+                opt.textContent = `${b.title} / ${b.author}`;
+                aozoraResults.appendChild(opt);
+            });
+
+            aozoraLoadBtn.disabled = books.length === 0;
+        }
+
+        // --- ③ 本文取得 & Shift-JIS → UTF-8 変換 ------------------------------
+        async function loadAozoraText() {
+            const id = aozoraResults.value;
+            if (!id) return;
+
+            // テキストファイルは Shift_JIS の場合が多い
+            const txtUrl = `${AOZORA_API}/books/${id}/content?format=txt`;
+            const buf = await (await fetch(AOZORA_CORS(txtUrl))).arrayBuffer();
+
+            // まず SJIS で試し、失敗したら UTF-8 でデコード
+            let text;
+            try  { text = new TextDecoder("shift_jis").decode(buf); }
+            catch { text = new TextDecoder("utf-8").decode(buf);   }
+
+            // 青空文庫は前後にヘッダ・底本情報が付くので大まかに取り除く
+            text = text.replace(/^[\s\S]*?\*\*\*.*?\n/, "")   // 先頭 "***" まで除去
+                        .replace(/底本.*[\s\S]*$/, "");        // "底本" 以降除去
+            inputText.value = text.trim();
+            updateDisplayArea();
+        }
+
+        // Initialize the application
+        initializeApp();
+        aozoraSearchBtn.addEventListener("click", searchAozora);
+        aozoraLoadBtn  .addEventListener("click", loadAozoraText);
+
+    </script>
+</body>
+</html>
