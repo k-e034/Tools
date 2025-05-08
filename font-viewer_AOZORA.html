@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>フォント表示確認ツール</title>
     <style>
         :root {
@@ -230,7 +230,37 @@
                 min-height: 100px;
             }
             #displayArea {
-                min-height: 200px;
+                width: 98vw;
+                font-size: 20px;
+                padding: 2vw;
+            }
+            #displayArea.vertical-rl {
+                width: 70vw;
+                height: 98vh;
+                font-size: 20px;
+            }
+            #displayArea3DContainer {
+                left: 2vw;
+                top: 8vh;
+                width: 96vw;
+                height: 80vh;
+            }
+            #floatingBtns {
+                right: 2vw;
+                bottom: 2vh;
+                gap: 8px;
+            }
+            #floatingBtns button {
+                font-size: 1.2em;
+                padding: 12px 0;
+                min-width: 44px;
+                min-height: 44px;
+            }
+            #opentypePanel {
+                right: 2vw;
+                bottom: 10vh;
+                padding: 8px 8px;
+                font-size: 0.95em;
             }
         }
 
