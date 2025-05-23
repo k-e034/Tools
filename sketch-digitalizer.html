@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手描きイラストデジタル変換ツール - わたくしの道具箱</title>
+    <link rel="icon" href="images/icons/favicon.ico" sizes="32x32">
+    <link rel="icon" href="images/icons/favicon.svg" type="image/svg">
+    <link rel="stylesheet" href="css/main.css">
+    <style>
+        .tool-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tool-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .tool-title {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+        }
+        
+        .tool-description {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+        
+        .control-panel {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border: 1px solid #e9ecef;
+        }
+        
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .control-label {
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        .control-options {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .control-btn {
+            flex: 1;
+            padding: 0.5rem 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            background: white;
+            color: #495057;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            font-size: 0.9rem;
+            min-width: 60px;
+        }
+        
+        .control-btn:hover {
+            background: #e9ecef;
+        }
+        
+        .control-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        
+        .control-btn:disabled {
+            background: #f8f9fa;
+            color: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .upload-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s ease;
+        }
+        
+        .upload-btn:hover {
+            background: #2980b9;
+        }
+        
+        .process-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: background 0.3s ease;
+            margin: 1rem auto;
+            display: block;
+        }
+        
+        .process-btn:hover:not(:disabled) {
+            background: #229954;
+        }
+        
+        .process-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .preview-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .preview-title {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: #2c3e50;
+        }
+        
+        .preview-area {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 300px;
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+        
+        .preview-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        
+        .preview-placeholder {
+            color: #6c757d;
+            text-align: center;
+        }
+        
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s ease;
+            width: 100%;
+        }
+        
+        .download-btn:hover {
+            background: #2980b9;
+        }
+        
+        .guide-section {
+            margin-top: 2rem;
+            padding: 2rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .guide-title {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #2c3e50;
+        }
+        
+        .guide-list {
+            list-style: decimal;
+            padding-left: 1.5rem;
+        }
+        
+        .guide-list li {
+            margin-bottom: 0.5rem;
+            line-height: 1.6;
+        }
+        
+        .guide-list ul {
+            list-style: disc;
+            margin-top: 0.5rem;
+            padding-left: 1.5rem;
+        }
+        
+        .guide-list strong {
+            color: #2c3e50;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .tool-container {
+                padding: 1rem;
+            }
+            
+            .control-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .control-options {
+                gap: 0.25rem;
+            }
+            
+            .control-btn {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.8rem;
+            }
+            
+            .preview-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .preview-area {
+                height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ヘッダー -->
+    <header>
+        <div class="header-container">
+            <div class="logo"><a href="index.html">わたくしの道具箱</a></div>
+            <nav>
+                <ul>
+                    <li><a href="index.html">ホーム</a></li>
+                    <li><a href="https://k-e034.github.io/satueiki/">撮影記へ</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <div class="main-content">
+        <div class="tool-container">
+            <div class="tool-header">
+                <h1 class="tool-title">手描きイラストデジタル変換ツール</h1>
+                <p class="tool-description">手描きのスケッチを美しいデジタルイラストに変換します</p>
+            </div>
+            
+            <!-- コントロールパネル -->
+            <div class="control-panel">
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                        📁 イラストをアップロード
+                    </button>
+                    <input type="file" id="fileInput" accept="image/*" class="hidden">
+                </div>
+                
+                <div class="control-grid">
+                    <div class="control-group">
+                        <label class="control-label">出力タイプ</label>
+                        <div class="control-options">
+                            <button class="control-btn active" data-setting="outputType" data-value="vector">ベクター</button>
+                            <button class="control-btn" data-setting="outputType" data-value="raster">ラスター</button>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">処理レベル</label>
+                        <div class="control-options">
+                            <button class="control-btn" data-setting="processingLevel" data-value="1">低</button>
+                            <button class="control-btn active" data-setting="processingLevel" data-value="2">中</button>
+                            <button class="control-btn" data-setting="processingLevel" data-value="3">高</button>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">カラーモード</label>
+                        <div class="control-options">
+                            <button class="control-btn active" data-setting="colorMode" data-value="original">オリジナル</button>
+                            <button class="control-btn" data-setting="colorMode" data-value="grayscale">白黒</button>
+                            <button class="control-btn" data-setting="colorMode" data-value="highContrast">高コントラスト</button>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">鉛筆テクスチャ</label>
+                        <div class="control-options">
+                            <button class="control-btn active" data-setting="textureMode" data-value="smooth">スムース</button>
+                            <button class="control-btn" data-setting="textureMode" data-value="sketch">軽い鉛筆感</button>
+                            <button class="control-btn" data-setting="textureMode" data-value="pencil">強い鉛筆感</button>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">出力フォーマット</label>
+                        <div class="control-options">
+                            <button class="control-btn active" data-setting="outputFormat" data-value="png">PNG</button>
+                            <button class="control-btn" data-setting="outputFormat" data-value="webp">WebP</button>
+                            <button class="control-btn" data-setting="outputFormat" data-value="svg">SVG</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="process-btn" id="processBtn" disabled>
+                    ⚙️ 変換する
+                </button>
+            </div>
+            
+            <!-- プレビューエリア -->
+            <div class="preview-grid">
+                <div class="preview-card">
+                    <h2 class="preview-title">元の画像</h2>
+                    <div class="preview-area" id="originalPreview">
+                        <div class="preview-placeholder">画像がアップロードされていません</div>
+                    </div>
+                </div>
+                
+                <div class="preview-card">
+                    <h2 class="preview-title">処理済み画像</h2>
+                    <div class="preview-area" id="processedPreview">
+                        <div class="preview-placeholder">画像が処理されていません</div>
+                    </div>
+                    <button class="download-btn hidden" id="downloadBtn">
+                        💾 ダウンロード
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 使い方ガイド -->
+            <div class="guide-section">
+                <h2 class="guide-title">使い方ガイド</h2>
+                <ol class="guide-list">
+                    <li>「イラストをアップロード」ボタンをクリックして手描きイラストを選択</li>
+                    <li>出力タイプを選択:
+                        <ul>
+                            <li><strong>ベクター</strong>: 線画を強調し、SVGのようなクリアな線を生成</li>
+                            <li><strong>ラスター</strong>: より自然な質感を保持しつつデジタル化</li>
+                        </ul>
+                    </li>
+                    <li>処理レベル（低・中・高）で詳細さとスムースさを調整</li>
+                    <li>カラーモードでオリジナルカラーを保持するか白黒にするか選択</li>
+                    <li>鉛筆テクスチャを選択:
+                        <ul>
+                            <li><strong>スムース</strong>: クリーンなデジタルイラスト風</li>
+                            <li><strong>軽い鉛筆感</strong>: わずかな粒状感と不均一さを保持</li>
+                            <li><strong>強い鉛筆感</strong>: 紙のテクスチャと鉛筆の粒状感を再現</li>
+                        </ul>
+                    </li>
+                    <li>出力フォーマットを選択:
+                        <ul>
+                            <li><strong>PNG</strong>: 高品質画像、透明度対応</li>
+                            <li><strong>WebP</strong>: 軽量ファイルサイズ、ウェブ用に最適化</li>
+                            <li><strong>SVG</strong>: 編集可能なベクター形式（ベクタータイプのみ）</li>
+                        </ul>
+                    </li>
+                    <li>「変換する」をクリックして処理開始</li>
+                    <li>処理後、結果を「ダウンロード」ボタンで保存</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- フッター -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-section">
+                <h3>わたくしの道具箱</h3>
+                <p>日常で使える便利なツールを開発・公開しています。</p>
+            </div>
+            <div class="footer-section">
+                <h3>リンク</h3>
+                <ul>
+                    <li><a href="index.html">ホーム</a></li>
+                    <li><a href="https://k-e034.github.io/satueiki/">撮影記</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="copyright">&copy; 2025 k.e. All Rights Reserved.</div>
+    </footer>
+
+    <!-- 隠しキャンバス -->
+    <canvas id="canvas" class="hidden"></canvas>
+
+    <script>
+        // 設定オブジェクト
+        const settings = {
+            outputType: 'vector',
+            processingLevel: 2,
+            colorMode: 'original',
+            textureMode: 'smooth',
+            outputFormat: 'png'
+        };
+
+        let originalImage = null;
+        let processedImage = null;
+        let isProcessing = false;
+
+        // DOM要素
+        const fileInput = document.getElementById('fileInput');
+        const processBtn = document.getElementById('processBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const originalPreview = document.getElementById('originalPreview');
+        const processedPreview = document.getElementById('processedPreview');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // イベントリスナー設定
+        document.addEventListener('DOMContentLoaded', function() {
+            // ファイル選択
+            fileInput.addEventListener('change', handleFileUpload);
+            
+            // 処理ボタン
+            processBtn.addEventListener('click', processImage);
+            
+            // ダウンロードボタン
+            downloadBtn.addEventListener('click', downloadImage);
+            
+            // コントロールボタン
+            document.querySelectorAll('.control-btn[data-setting]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const setting = this.getAttribute('data-setting');
+                    const value = this.getAttribute('data-value');
+                    
+                    // 同じ設定グループの他のボタンを非アクティブに
+                    document.querySelectorAll(`[data-setting="${setting}"]`).forEach(b => {
+                        b.classList.remove('active');
+                    });
+                    
+                    // クリックされたボタンをアクティブに
+                    this.classList.add('active');
+                    
+                    // 設定を更新
+                    settings[setting] = value;
+                    
+                    // SVGボタンの有効/無効切替
+                    updateSVGButtonState();
+                });
+            });
+            
+            // 初期状態でSVGボタンの状態を設定
+            updateSVGButtonState();
+        });
+
+        function updateSVGButtonState() {
+            const svgBtn = document.querySelector('[data-setting="outputFormat"][data-value="svg"]');
+            if (settings.outputType !== 'vector') {
+                svgBtn.disabled = true;
+                svgBtn.classList.add('disabled');
+                if (settings.outputFormat === 'svg') {
+                    // SVGが選択されていてベクターでない場合、PNGに変更
+                    settings.outputFormat = 'png';
+                    svgBtn.classList.remove('active');
+                    document.querySelector('[data-setting="outputFormat"][data-value="png"]').classList.add('active');
+                }
+            } else {
+                svgBtn.disabled = false;
+                svgBtn.classList.remove('disabled');
+            }
+        }
+
+        // ファイルアップロード処理
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    originalImage = img;
+                    
+                    // プレビュー表示
+                    originalPreview.innerHTML = `<img src="${event.target.result}" alt="Original sketch" class="preview-image">`;
+                    
+                    // 処理ボタンを有効化
+                    processBtn.disabled = false;
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 画像処理メイン関数
+        function processImage() {
+            if (!originalImage || isProcessing) return;
+            
+            isProcessing = true;
+            processBtn.disabled = true;
+            processBtn.innerHTML = '⚙️ 処理中...';
+            
+            // Canvas設定
+            canvas.width = originalImage.width;
+            canvas.height = originalImage.height;
+            
+            // 元画像を描画
+            ctx.drawImage(originalImage, 0, 0);
+            
+            // 非同期で処理実行
+            setTimeout(() => {
+                try {
+                    // 画像データ取得
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imageData.data;
+                    
+                    // 出力タイプに基づいて処理
+                    if (settings.outputType === 'vector') {
+                        processVector(data, canvas.width, canvas.height);
+                    } else {
+                        processRaster(data, imageData);
+                    }
+                    
+                    // カラーモード適用
+                    applyColorMode();
+                    
+                    // テクスチャ適用
+                    if (settings.textureMode !== 'smooth') {
+                        applyTexture();
+                    }
+                    
+                    // 結果生成
+                    generateOutput();
+                    
+                } catch (error) {
+                    console.error('処理エラー:', error);
+                    alert('画像処理中にエラーが発生しました。');
+                } finally {
+                    isProcessing = false;
+                    processBtn.disabled = false;
+                    processBtn.innerHTML = '⚙️ 変換する';
+                }
+            }, 100);
+        }
+
+        // ベクター処理
+        function processVector(data, width, height) {
+            const edges = detectEdges(data, width, height);
+            applyEdges(edges, width, height);
+            
+            if (settings.processingLevel > 1) {
+                smoothLines();
+            }
+        }
+
+        // ラスター処理
+        function processRaster(data, imageData) {
+            enhanceContrast(data);
+            ctx.putImageData(imageData, 0, 0);
+            
+            if (settings.processingLevel > 1) {
+                applyBlur();
+            }
+        }
+
+        // エッジ検出
+        function detectEdges(data, width, height) {
+            const edges = new Uint8ClampedArray(width * height);
+            const threshold = 30 - settings.processingLevel * 5;
+            
+            for (let y = 1; y < height - 1; y++) {
+                for (let x = 1; x < width - 1; x++) {
+                    const idx = (y * width + x) * 4;
+                    const idx1 = ((y-1) * width + x) * 4;
+                    const idx2 = ((y+1) * width + x) * 4;
+                    const idx3 = (y * width + (x-1)) * 4;
+                    const idx4 = (y * width + (x+1)) * 4;
+                    
+                    const gx = -1 * data[idx1] + 1 * data[idx2] + -2 * data[idx3] + 2 * data[idx4];
+                    const gy = -1 * data[idx3] + 1 * data[idx4] + -2 * data[idx1] + 2 * data[idx2];
+                    const g = Math.sqrt(gx*gx + gy*gy);
+                    
+                    edges[y * width + x] = g > threshold ? 255 : 0;
+                }
+            }
+            
+            return edges;
+        }
+
+        // エッジ適用
+        function applyEdges(edges, width, height) {
+            const imgData = ctx.getImageData(0, 0, width, height);
+            const data = imgData.data;
+            
+            for (let i = 0; i < width * height; i++) {
+                const edge = edges[i];
+                const idx = i * 4;
+                
+                if (edge === 255) {
+                    data[idx] = 0;
+                    data[idx+1] = 0;
+                    data[idx+2] = 0;
+                    data[idx+3] = 255;
+                } else {
+                    data[idx] = 255;
+                    data[idx+1] = 255;
+                    data[idx+2] = 255;
+                    data[idx+3] = 0;
+                }
+            }
+            
+            ctx.putImageData(imgData, 0, 0);
+        }
+
+        // 線のスムージング
+        function smoothLines() {
+            ctx.filter = `blur(${settings.processingLevel * 0.5}px)`;
+            const temp = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.putImageData(temp, 0, 0);
+            ctx.filter = 'none';
+        }
+
+        // コントラスト強調
+        function enhanceContrast(data) {
+            const factor = 1.2 + (settings.processingLevel * 0.2);
+            
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = Math.min(255, Math.max(0, (data[i] - 128) * factor + 128));
+                data[i+1] = Math.min(255, Math.max(0, (data[i+1] - 128) * factor + 128));
+                data[i+2] = Math.min(255, Math.max(0, (data[i+2] - 128) * factor + 128));
+            }
+        }
+
+        // ぼかし適用
+        function applyBlur() {
+            ctx.filter = `blur(${settings.processingLevel * 0.5}px)`;
+            const temp = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.putImageData(temp, 0, 0);
+            ctx.filter = 'none';
+        }
+
+        // カラーモード適用
+        function applyColorMode() {
+            if (settings.colorMode === 'original') return;
+            
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                if (settings.colorMode === 'grayscale') {
+                    const avg = (data[i] + data[i+1] + data[i+2]) / 3;
+                    data[i] = avg;
+                    data[i+1] = avg;
+                    data[i+2] = avg;
+                } else if (settings.colorMode === 'highContrast') {
+                    const avg = (data[i] + data[i+1] + data[i+2]) / 3;
+                    const val = avg > 128 ? 255 : 0;
+                    data[i] = val;
+                    data[i+1] = val;
+                    data[i+2] = val;
+                }
+            }
+            
+            ctx.putImageData(imgData, 0, 0);
+        }
+
+        // テクスチャ適用
+        function applyTexture() {
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            
+            if (settings.textureMode === 'sketch') {
+                // スケッチ風テクスチャ
+                for (let y = 0; y < canvas.height; y++) {
+                    for (let x = 0; x < canvas.width; x++) {
+                        const idx = (y * canvas.width + x) * 4;
+                        
+                        if (data[idx] < 100 && data[idx+1] < 100 && data[idx+2] < 100 && data[idx+3] > 0) {
+                            const noise = Math.random() * 30;
+                            data[idx] = Math.min(255, data[idx] + noise);
+                            data[idx+1] = Math.min(255, data[idx+1] + noise);
+                            data[idx+2] = Math.min(255, data[idx+2] + noise);
+                            
+                            if (Math.random() > 0.85) {
+                                data[idx+3] = Math.max(0, data[idx+3] - Math.random() * 100);
+                            }
+                        }
+                    }
+                }
+            } else if (settings.textureMode === 'pencil') {
+                // 鉛筆風テクスチャ
+                for (let i = 0; i < data.length; i += 4) {
+                    if (data[i] < 100 && data[i+1] < 100 && data[i+2] < 100) {
+                        const variance = Math.random() * 20 - 10;
+                        data[i] = Math.max(0, Math.min(255, data[i] + variance));
+                        data[i+1] = Math.max(0, Math.min(255, data[i+1] + variance));
+                        data[i+2] = Math.max(0, Math.min(255, data[i+2] + variance));
+                    }
+                }
+            }
+            
+            ctx.putImageData(imgData, 0, 0);
+        }
+
+        // 出力生成
+        function generateOutput() {
+            const format = settings.outputFormat === 'webp' ? 'image/webp' : 'image/png';
+            const quality = settings.outputFormat === 'webp' ? 0.8 : 1.0;
+            
+            if (settings.outputFormat === 'svg' && settings.outputType === 'vector') {
+                generateSVG();
+            } else {
+                processedImage = canvas.toDataURL(format, quality);
+                displayResult();
+            }
+        }
+
+        // SVG生成（簡易版）
+        function generateSVG() {
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            
+            let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}" viewBox="0 0 ${canvas.width} ${canvas.height}">`;
+            
+            // 黒いピクセルを小さな円として描画（簡易版）
+            for (let y = 0; y < canvas.height; y += 2) {
+                for (let x = 0; x < canvas.width; x += 2) {
+                    const idx = (y * canvas.width + x) * 4;
+                    if (data[idx] < 50 && data[idx+1] < 50 && data[idx+2] < 50 && data[idx+3] > 200) {
+                        svgContent += `<circle cx="${x}" cy="${y}" r="0.5" fill="black"/>`;
+                    }
+                }
+            }
+            
+            svgContent += `</svg>`;
+            
+            const svgBlob = new Blob([svgContent], {type: 'image/svg+xml'});
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                processedImage = reader.result;
+                displayResult();
+            };
+            reader.readAsDataURL(svgBlob);
+        }
+
+        // 結果表示
+        function displayResult() {
+            processedPreview.innerHTML = `<img src="${processedImage}" alt="Processed sketch" class="preview-image">`;
+            downloadBtn.classList.remove('hidden');
+        }
+
+        // ダウンロード処理
+        function downloadImage() {
+            if (!processedImage) return;
+            
+            try {
+                const link = document.createElement('a');
+                link.href = processedImage;
+                
+                const extension = settings.outputFormat === 'svg' ? 'svg' : 
+                                 settings.outputFormat === 'webp' ? 'webp' : 'png';
+                link.download = `digitized_${settings.outputType}_sketch.${extension}`;
+                
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (error) {
+                console.error("ダウンロードエラー:", error);
+                alert("ダウンロードに失敗しました。ブラウザの設定を確認してください。");
+            }
+        }
+    </script>
+</body>
+</html>

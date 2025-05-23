@@ -214,6 +214,71 @@
             flex-direction: row;
         }
 
+        /* 青空文庫検索パネル */
+        #aozoraPanel {
+            position: fixed;
+            right: 60px;
+            bottom: 2vh;
+            z-index: 200;
+            background: var(--panel-bg);
+            color: var(--main-fg);
+            border-radius: 12px;
+            box-shadow: 0 2px 12px #0008;
+            padding: 16px;
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            width: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        #aozoraPanel input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            outline: none;
+            background: rgba(255,255,255,0.9);
+            color: #222;
+        }
+
+        #aozoraPanel select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            outline: none;
+            background: rgba(255,255,255,0.9);
+            color: #222;
+            max-height: 200px;
+        }
+
+        #aozoraPanel button {
+            padding: 8px 16px;
+            background-color: var(--accent);
+            color: #222;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95em;
+        }
+
+        #aozoraPanel button:hover {
+            opacity: 0.8;
+        }
+
+        #aozoraPanel button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #aozoraLoadingMsg {
+            text-align: center;
+            color: var(--accent);
+            font-size: 0.9em;
+            display: none;
+        }
 
         /* Responsive adjustments */
         @media (max-width: 600px) {
@@ -256,11 +321,14 @@
                 min-width: 44px;
                 min-height: 44px;
             }
-            #opentypePanel {
+            #opentypePanel, #aozoraPanel {
                 right: 2vw;
                 bottom: 10vh;
                 padding: 8px 8px;
                 font-size: 0.95em;
+            }
+            #aozoraPanel {
+                width: 280px;
             }
         }
 
@@ -310,12 +378,49 @@
         <button id="themeBtn" title="テーマ切替">&#9881;</button>
         <button id="writingModeBtn" title="縦書き/横書き切替">縦</button>
         <button id="opentypeBtn" title="OpenType機能">OT</button>
+        <button id="aozoraBtn" title="青空文庫">&#128218;</button>
     </div>
 
     <!-- OpenType機能パネル（ミニマルなカンマ区切り入力） -->
     <div id="opentypePanel" style="position:fixed;right:60px;bottom:2vh;z-index:200;background:var(--panel-bg);color:var(--main-fg);border-radius:12px;box-shadow:0 2px 12px #0008;padding:10px 16px;display:none;">
         <label style="font-size:0.95em;">OpenType機能（カンマ区切りで入力）</label>
         <input id="opentypeInput" type="text" placeholder="例: liga, kern, ss01" style="width:180px;font-size:1em;padding:6px 8px;border-radius:6px;border:1px solid #ccc;outline:none;">
+    </div>
+
+    <!-- 青空文庫検索パネル -->
+    <div id="aozoraPanel">
+        <h3 style="margin: 0 0 12px 0; font-size: 1.1em;">青空文庫検索</h3>
+        
+        <!-- タブ切り替え -->
+        <div class="search-tabs">
+            <button class="search-tab active" data-tab="bungomail">API検索</button>
+            <button class="search-tab" data-tab="aozorasearch">全文検索</button>
+        </div>
+        
+        <!-- API検索（既存機能） -->
+        <div id="bungomailSearch" class="search-content active">
+            <input id="aozoraTitle" type="text" placeholder="タイトル（部分一致）">
+            <input id="aozoraAuthor" type="text" placeholder="著者名（部分一致）">
+            <button id="aozoraSearchBtn">検索</button>
+            <select id="aozoraResults" size="5" style="display: none;"></select>
+            <button id="aozoraLoadBtn" style="display: none;" disabled>本文を読み込む</button>
+            <div id="aozoraLoadingMsg">読み込み中...</div>
+        </div>
+        
+        <!-- aozorasearch全文検索 -->
+        <div id="aozorasearchContent" class="search-content">
+            <input id="aozorasearchQuery" type="text" placeholder="全文検索キーワード">
+            <button id="aozorasearchBtn">aozorasearchで検索</button>
+            <div style="font-size: 0.85em; color: #ccc; margin-top: 8px;">
+                ※全文検索結果は別ウィンドウで開きます
+            </div>
+            <div id="aozorasearchInfo" style="font-size: 0.8em; color: #aaa; margin-top: 8px;">
+                <p>aozorasearchは青空文庫の高機能全文検索サイトです。</p>
+                <p>• NDC分類で絞り込み可能</p>
+                <p>• 文書内容での詳細検索</p>
+                <p>• 著者・時代別検索</p>
+            </div>
+        </div>
     </div>
 
     <!-- Three.js CDN（必ず自作スクリプトより前に） -->
@@ -332,7 +437,24 @@
         const opentypePanel = document.getElementById('opentypePanel');
         const opentypeInput = document.getElementById('opentypeInput');
         const displayArea = document.getElementById('displayArea');
-        const AOZORA_API = "https://pubserver2.herokuapp.com/api/v0.1"; // CORS対応済みAPI
+        
+        // 青空文庫関連要素
+        const aozoraBtn = document.getElementById('aozoraBtn');
+        const aozoraPanel = document.getElementById('aozoraPanel');
+        const aozoraTitle = document.getElementById('aozoraTitle');
+        const aozoraAuthor = document.getElementById('aozoraAuthor');
+        const aozoraSearchBtn = document.getElementById('aozoraSearchBtn');
+        const aozoraResults = document.getElementById('aozoraResults');
+        const aozoraLoadBtn = document.getElementById('aozoraLoadBtn');
+        const aozoraLoadingMsg = document.getElementById('aozoraLoadingMsg');
+        
+        // aozorasearch関連要素
+        const aozorasearchQuery = document.getElementById('aozorasearchQuery');
+        const aozorasearchBtn = document.getElementById('aozorasearchBtn');
+        const searchTabs = document.querySelectorAll('.search-tab');
+        const searchContents = document.querySelectorAll('.search-content');
+        
+        const AOZORA_API = "https://api.bungomail.com/v0"; // bungomail API
 
         let currentFontObjectURL = null;
         let isVerticalWriting = false;
@@ -346,6 +468,7 @@
             updateDisplayArea();
             fontFileInput.addEventListener('change', handleFontFileSelection);
             fontFileBtn.addEventListener('click', ()=>fontFileInput.click());
+            
             // テーマ切替ボタン
             const themes = ['theme-1','theme-2','theme-3'];
             themeBtn.addEventListener('click', ()=>{
@@ -356,20 +479,64 @@
                 setBgWaveTheme(themes[next]);
                 updateTextColorAuto();
             });
+            
             // 縦書き/横書き切替
             writingModeBtn.addEventListener('click', ()=>{
                 isVerticalWriting = !isVerticalWriting;
                 writingModeBtn.textContent = isVerticalWriting ? '横' : '縦';
                 updateDisplayArea();
             });
+            
             // OpenType機能パネル
             opentypeBtn.addEventListener('click', ()=>{
                 opentypePanel.style.display = opentypePanel.style.display==='flex' ? 'none' : 'flex';
+                aozoraPanel.style.display = 'none'; // 他のパネルを閉じる
             });
             opentypeInput.addEventListener('input', ()=>{
                 activeOpenTypeFeatures = opentypeInput.value;
                 updateOpenTypeFeatures();
             });
+            
+            // 青空文庫パネル
+            aozoraBtn.addEventListener('click', ()=>{
+                aozoraPanel.style.display = aozoraPanel.style.display==='flex' ? 'none' : 'flex';
+                opentypePanel.style.display = 'none'; // 他のパネルを閉じる
+            });
+            
+            // タブ切り替え機能
+            searchTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabName = tab.dataset.tab;
+                    
+                    // タブのアクティブ状態を切り替え
+                    searchTabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    // コンテンツの表示を切り替え
+                    searchContents.forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    
+                    if (tabName === 'bungomail') {
+                        document.getElementById('bungomailSearch').classList.add('active');
+                    } else if (tabName === 'aozorasearch') {
+                        document.getElementById('aozorasearchContent').classList.add('active');
+                    }
+                });
+            });
+            
+            // 青空文庫API検索
+            aozoraSearchBtn.addEventListener('click', searchAozora);
+            aozoraTitle.addEventListener('keypress', (e)=>{ if(e.key==='Enter') searchAozora(); });
+            aozoraAuthor.addEventListener('keypress', (e)=>{ if(e.key==='Enter') searchAozora(); });
+            
+            // 青空文庫本文読み込み
+            aozoraLoadBtn.addEventListener('click', loadAozoraText);
+            
+            // aozorasearch全文検索
+            aozorasearchBtn.addEventListener('click', openAozoraSearch);
+            aozorasearchQuery.addEventListener('keypress', (e)=>{ if(e.key==='Enter') openAozoraSearch(); });
+            
             // IME入力対応: compositionstart/endでフラグ管理
             displayArea.addEventListener('compositionstart', ()=>{ isComposing = true; });
             displayArea.addEventListener('compositionend', ()=>{
@@ -377,6 +544,7 @@
                 updateDisplayArea();
                 update3DTextFromInput();
             });
+            
             // 表示エリア直接編集
             displayArea.addEventListener('input', ()=>{
                 if(!isComposing) {
@@ -384,16 +552,10 @@
                     update3DTextFromInput();
                 }
             });
+            
             // 初期テキスト
             displayArea.innerHTML = '吾輩は猫である。名前はまだ無い。どこで生れたかとんと見当がつかぬ。';
             updateTextColorAuto();
-        }
-
-        // フォントサイズ変更時にルビサイズも追従
-        function handleFontSizeChange() {
-            fontSizeValueDisplay.textContent = fontSizeInput.value;
-            document.documentElement.style.setProperty("--ruby-scale", 0.5); // お好みで変更可
-            updateDisplayArea();
         }
 
         // updateDisplayAreaを統合
@@ -453,14 +615,14 @@
             const file = event.target.files[0];
             
             if (currentFontObjectURL) {
-                URL.revokeObjectURL(currentFontObjectURL); // Revoke previous object URL
+                URL.revokeObjectURL(currentFontObjectURL);
                 currentFontObjectURL = null;
             }
             if (customFontStyleElement) {
-                customFontStyleElement.remove(); // Remove old style element
+                customFontStyleElement.remove();
                 customFontStyleElement = null;
             }
-            displayArea.style.fontFamily = ''; // Reset to default font
+            displayArea.style.fontFamily = '';
 
             if (!file) {
                 displayArea.innerHTML = `<span class="font-not-loaded-placeholder">フォントファイルが選択されていません。</span>`;
@@ -491,98 +653,74 @@
             updateDisplayArea();
         }
 
-        function toggleWritingMode() {
-            isVerticalWriting = !isVerticalWriting;
-            toggleWritingModeButton.textContent = isVerticalWriting ? '横書きにする' : '縦書きにする';
-            updateDisplayArea();
-        }
-        
-        function loadSampleText(sampleId) {
-            switch(sampleId) {
-                case 1:
-                    inputText.value = "吾輩は猫である。名前はまだ無い。どこで生れたかとんと見当がつかぬ。何でも薄暗いじめじめした所でニャーニャー泣いていた事だけは記憶している。吾輩はここで始めて人間というものを見た。";
-                    break;
-                case 2:
-                    inputText.value = "とりなくこゑす ゆめさませ\nみよあけわたる ひんかしを\nそらいろはえて おきつへに\nほふねむれゐぬ もやのうち";
-                    break;
-                case 3:
-                    inputText.value = "これはテスト用の文章です。This is a test sentence.\nひらがな カタカナ 漢字 Alphabet 1234567890 ！？「」、。";
-                    break;
-            }
-            updateDisplayArea();
-        }
-
         function aozoraToRubyHTML(txt) {
-            // ① ｜漢字《かな》      → <ruby><rb style="font-feature-settings:'ruby';-webkit-font-feature-settings:'ruby';">漢字</rb><rt>かな</rt></ruby>
+            // ① ｜漢字《かな》
             txt = txt.replace(/｜([^\s《》]+)《([^《》]+)》/g,
                         (_,rb,rt)=>`<ruby><rb style="font-feature-settings:'ruby';-webkit-font-feature-settings:'ruby';">${rb}</rb><rt>${rt}</rt></ruby>`);
 
-            // ② 直前の語 + 《かな》 → 同様に変換（ひらがな・カタカナ・漢字の連続を語とみなす簡易版）
+            // ② 直前の語 + 《かな》
             txt = txt.replace(/([一-龯々〆ヵヶぁ-んァ-ヶー]+)《([^《》]+)》/g,
                         (_,rb,rt)=>`<ruby><rb style="font-feature-settings:'ruby';-webkit-font-feature-settings:'ruby';">${rb}</rb><rt>${rt}</rt></ruby>`);
 
             return txt;
         }
 
-
-        // --- ② 検索処理 ----------------------
+        // --- 青空文庫検索処理（bungomail API用に修正） ---
         async function searchAozora() {
             const title = aozoraTitle.value.trim();
             const author = aozoraAuthor.value.trim();
             if (!title && !author) return;
 
+            aozoraLoadingMsg.style.display = 'block';
+            aozoraResults.style.display = 'none';
+            aozoraLoadBtn.style.display = 'none';
+
             let books = [];
             let error = false;
             let ids = new Set();
 
-            // タイトル検索（正規表現検索）
-            if (title) {
-                try {
-                    let url = `${AOZORA_API}/books?limit=20&title=/${title}/`;
-                    url = encodeURI(url);
-                    let res = await fetch(url);
-                    if (res.ok) {
-                        let result = await res.json();
-                        result.forEach(b => {
-                            books.push(b);
-                            ids.add(b.id);
-                        });
-                    } else if (res.status === 404) {
-                        // 何もしない（該当なし）
-                    } else {
-                        error = true;
-                    }
-                } catch (e) { error = true; }
-            }
-
-            // 著者検索（正規表現検索、重複除外）
-            if (author) {
-                try {
-                    let url = `${AOZORA_API}/books?limit=20&author=/${author}/`;
-                    url = encodeURI(url);
-                    let res = await fetch(url);
-                    if (res.ok) {
-                        let result = await res.json();
-                        result.forEach(b => {
-                            if (!ids.has(b.id)) {
+            try {
+                let url = `${AOZORA_API}/books?limit=20`;
+                
+                // タイトル検索（LIKE検索形式で指定）
+                if (title) {
+                    url += `&作品名=/${encodeURIComponent(title)}/`;
+                }
+                
+                // 著者検索（姓名での検索）
+                if (author) {
+                    url += `&姓名=/${encodeURIComponent(author)}/`;
+                }
+                
+                let res = await fetch(url);
+                
+                if (res.ok) {
+                    let result = await res.json();
+                    if (result.books && Array.isArray(result.books)) {
+                        result.books.forEach(b => {
+                            if (!ids.has(b.作品ID)) {
                                 books.push(b);
-                                ids.add(b.id);
+                                ids.add(b.作品ID);
                             }
                         });
-                    } else if (res.status === 404) {
-                        // 何もしない（該当なし）
-                    } else {
-                        error = true;
                     }
-                } catch (e) { error = true; }
+                } else {
+                    error = true;
+                }
+            } catch (e) { 
+                console.error('Search error:', e);
+                error = true; 
             }
 
+            aozoraLoadingMsg.style.display = 'none';
             aozoraResults.innerHTML = "";
+            
             if (error) {
                 const opt = document.createElement("option");
                 opt.value = "";
                 opt.textContent = "検索エラーが発生しました";
                 aozoraResults.appendChild(opt);
+                aozoraResults.style.display = 'block';
                 aozoraLoadBtn.disabled = true;
                 return;
             }
@@ -591,37 +729,88 @@
                 opt.value = "";
                 opt.textContent = "該当なし（0件）";
                 aozoraResults.appendChild(opt);
+                aozoraResults.style.display = 'block';
                 aozoraLoadBtn.disabled = true;
                 return;
             }
+            
             books.forEach(b => {
                 const opt = document.createElement("option");
-                opt.value = b.id;
-                opt.textContent = `${b.title} / ${b.author}`;
+                opt.value = b.作品ID;
+                opt.textContent = `${b.作品名} / ${b.姓名}`;
                 aozoraResults.appendChild(opt);
             });
+            
+            aozoraResults.style.display = 'block';
+            aozoraLoadBtn.style.display = 'block';
             aozoraLoadBtn.disabled = books.length === 0;
         }
 
-        // --- ③ 本文取得 & Shift-JIS → UTF-8 変換 ------------------------------
+        // --- 青空文庫本文取得（bungomail API + 直接テキストファイル取得）---
         async function loadAozoraText() {
             const id = aozoraResults.value;
             if (!id) return;
 
-            // pubserver2はCORS対応済みなので直接fetch
-            const txtUrl = `${AOZORA_API}/books/${id}/content?format=txt`;
-            const buf = await (await fetch(txtUrl)).arrayBuffer();
+            aozoraLoadingMsg.style.display = 'block';
+            
+            try {
+                // まず作品情報を取得してテキストファイルURLを得る
+                const bookRes = await fetch(`${AOZORA_API}/books/${id}`);
+                if (!bookRes.ok) throw new Error('作品情報の取得に失敗しました');
+                
+                const bookData = await bookRes.json();
+                const textFileUrl = bookData.book.テキストファイルURL;
+                
+                if (!textFileUrl) throw new Error('テキストファイルURLが見つかりません');
+                
+                // テキストファイルを直接取得（ZIPファイルの場合は注意が必要）
+                let text;
+                if (textFileUrl.endsWith('.zip')) {
+                    // ZIPファイルの場合は警告を表示
+                    alert('このファイルはZIP形式です。直接テキストを読み込めません。青空文庫のサイトから直接ダウンロードしてください。');
+                    return;
+                } else {
+                    // 直接テキストファイルの場合
+                    const textRes = await fetch(textFileUrl);
+                    if (!textRes.ok) throw new Error('テキストファイルの取得に失敗しました');
+                    
+                    const buf = await textRes.arrayBuffer();
+                    
+                    // まず SJIS で試し、失敗したら UTF-8 でデコード
+                    try  { text = new TextDecoder("shift_jis").decode(buf); }
+                    catch { text = new TextDecoder("utf-8").decode(buf);   }
+                }
 
-            // まず SJIS で試し、失敗したら UTF-8 でデコード
-            let text;
-            try  { text = new TextDecoder("shift_jis").decode(buf); }
-            catch { text = new TextDecoder("utf-8").decode(buf);   }
+                // 青空文庫は前後にヘッダ・底本情報が付くので大まかに取り除く
+                text = text.replace(/^[\s\S]*?\-{10,}[\s\S]*?\n/, "")   // ヘッダー部分を除去
+                            .replace(/底本：.*[\s\S]*$/, "");            // 底本情報以降除去
 
-            // 青空文庫は前後にヘッダ・底本情報が付くので大まかに取り除く
-            text = text.replace(/^[\s\S]*?\*\*\*.*?\n/, "")   // 先頭 "***" まで除去
-                        .replace(/底本.*[\s\S]*$/, "");        // "底本" 以降除去
-            inputText.value = text.trim();
-            updateDisplayArea();
+                // 表示エリアに設定
+                displayArea.innerText = text.trim();
+                updateDisplayArea();
+                update3DTextFromInput();
+                
+                // パネルを閉じる
+                aozoraPanel.style.display = 'none';
+            } catch (e) {
+                console.error('Error loading text:', e);
+                alert('本文の読み込みに失敗しました: ' + e.message);
+            } finally {
+                aozoraLoadingMsg.style.display = 'none';
+            }
+        }
+
+        // --- aozorasearch全文検索機能 ---
+        function openAozoraSearch() {
+            const query = aozorasearchQuery.value.trim();
+            if (!query) {
+                alert('検索キーワードを入力してください');
+                return;
+            }
+            
+            // aozorasearchサイトで検索結果を新しいウィンドウで開く
+            const searchUrl = `https://myokoym.net/aozorasearch/?query=${encodeURIComponent(query)}`;
+            window.open(searchUrl, '_blank', 'width=1000,height=700,scrollbars=yes,resizable=yes');
         }
 
         // Initialize the application
@@ -694,7 +883,7 @@
                 }
             }
         }
-        // 初期化・リサイズ・テーマ切替フック
+        // 初期化・リサイズ・テーマ切切替フック
         function setupBgWaveGrid() {
             initBgWaveGrid();
             if(bgWaveAnimId) cancelAnimationFrame(bgWaveAnimId);
@@ -859,10 +1048,5 @@
         }
     };
     </script>
-
-    <!-- <script src="https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.min.js"></script> -->
-    <!-- <script src="https://cdn.jsdelivr.net/npm/three@0.153.0/examples/jsm/geometries/TextGeometry.min.js"></script> -->
-    <!-- <script src="https://cdn.jsdelivr.net/npm/three@0.153.0/examples/jsm/loaders/FontLoader.min.js"></script> -->
-    <!-- <script src="https://cdn.jsdelivr.net/npm/three@0.153.0/examples/fonts/helvetiker_regular.typeface.json"></script> -->
 </body>
 </html>

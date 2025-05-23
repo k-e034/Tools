@@ -1,67 +1,327 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tools provided by k-e034</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>わたくしの道具箱</title>
+    <link rel="icon" href="images/icons/favicon.ico" sizes="32x32">
+    <link rel="icon" href="images/icons/favicon.svg" type="image/svg">
+    <link rel="shortcut icon" href="images/icons/favicon.svg" type="image/svg">
+    <link rel="apple-touch-icon" href="images/icons/apple-touch-icon.png" sizes="180x180">
+    <link rel="mask-icon" href="images/icons/safari-pinned-tab.svg" color="#3498db">
+    <link rel="stylesheet" href="css/main.css">
 </head>
+
 <body>
-  <h1>漢字の雨アニメーション</h1>
-  <p>下記のリンクをクリックすると、漢字の雨アニメーションが表示されます。</p>
-  
-  <div style="margin: 20px 0;">
-    <a href="kanji-rain-html (3).html" style="display: inline-block; padding: 10px 20px; background-color: #4477FF; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">アニメーションを表示</a>
-  </div>
-  
-  <div style="margin-top: 30px;">
-    <h2>使い方</h2>
-    <ul>
-      <li>画面右下のハンバーガーメニューをクリックして、設定パネルを開きます</li>
-      <li>背景として動画または静止画を選択できます</li>
-      <li>漢字の色や密度、背景のぼかし具合などを調整できます</li>
-      <li>字幕機能で特定のテキストを表示することもできます</li>
-      <li>画面上の漢字をクリックすると消去エフェクトが表示されます</li>
-    </ul>
-  </div>
+    <!-- ヘッダー -->
+    <header>
+        <div class="header-container">
+            <div class="logo"><a href="index.html">わたくしの道具箱</a></div>
+            <nav>
+                <ul>
+                    <li><a href="index.html">ホーム</a></li>
+                    <li><a href="https://k-e034.github.io/satueiki/">撮影記へ</a></li>
+                    <li><a href="#tag-section">カテゴリ検索</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
 
-  <h1>ASCIIアートジェネレーター</h1>
-  <p>下記のリンクをクリックすると、ASCIIアートジェネレータが表示されます。</p>
-  
-  <div style="margin: 20px 0;">
-    <a href="ascii-art-generator.html" style="display: inline-block; padding: 10px 20px; background-color: #4477FF; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">ASCIIアートジェネレータを表示</a>
-  </div>
-  
-  <div style="margin-top: 30px;">
-    <h2>使い方</h2>
-    <ul>
-      <li>-</li>
-      <li>-</li>
-      <li>-</li>
-      <li>-</li>
-      <li>-</li>
-    </ul>
-  </div>
+    <!-- メインコンテンツ -->
+    <div class="main-content">
+        <!-- イントロセクション -->
+        <section class="intro-section">
+            <div class="sticker-container">
+                <h1 class="sticker-text">わたくしの道具箱</h1>
+                <p class="sticker-subtitle">日常で使える便利なツール集</p>
+            </div>
+        </section>
 
-  <h1>青空フォントビュワー</h1>
-  <p>下記のリンクをクリックすると、青空フォントビュワーが表示されます。</p>
-  
-  <div style="margin: 20px 0;">
-    <a href="font-viewer_AOZORA.html" style="display: inline-block; padding: 10px 20px; background-color: #4477FF; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">青空フォントビュワーを表示</a>
-  </div>
-  
-  <div style="margin-top: 30px;">
-    <h2>使い方</h2>
-    <ul>
-      <li>-</li>
-      <li>-</li>
-      <li>-</li>
-      <li>-</li>
-      <li>-</li>
-    </ul>
-  </div>
-  
-  <footer style="margin-top: 50px; color: #666;">
-    <p>© 2025 mosh</p>
-  </footer>
+        <!-- ツールグリッド -->
+        <div id="tool-grid" class="feature-grid">
+            <!-- 漢字の雨アニメーション -->
+            <div class="feature-card" data-tags="animation,entertainment,visual">
+                <a href="kanji-rain-html (3).html">
+                    <div class="feature-image" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 4rem;">雨</div>
+                    <div class="feature-content">
+                        <div class="post-date">エンターテインメント</div>
+                        <h3>漢字の雨アニメーション</h3>
+                        <p>美しい漢字が雨のように降り注ぐアニメーション。背景動画・静止画の設定、字幕機能、各種エフェクトのカスタマイズが可能です。</p>
+                    </div>
+                </a>
+            </div>
+
+            <!-- ASCIIアートジェネレーター -->
+            <div class="feature-card" data-tags="image-processing,art,text">
+                <a href="ascii-art-generator.html">
+                    <div class="feature-image" style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); display: flex; align-items: center; justify-content: center; color: white; font-family: monospace; font-size: 1.2rem; text-align: center;">
+                        ░█▀▀█ ░█▀▀▀█ ░█▀▀█<br>
+                        ░█▄▄█ ░█▄▄▄▀ ░█▄▄▀<br>
+                        ░█▀▀▀ ░█▄▄▄█ ░█░▀▀
+                    </div>
+                    <div class="feature-content">
+                        <div class="post-date">画像処理</div>
+                        <h3>ASCIIアートジェネレーター</h3>
+                        <p>画像をASCIIアートに変換。文字サイズ、明るさ調整、エッジ検出、カラライズ機能付き。PNG・PDFでの保存も可能です。</p>
+                    </div>
+                </a>
+            </div>
+
+            <!-- 青空フォントビューワー -->
+            <div class="feature-card" data-tags="font,text,reading">
+                <a href="font-viewer_AOZORA.html">
+                    <div class="feature-image" style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%); display: flex; align-items: center; justify-content: center; color: #2c3e50; font-size: 2.5rem; font-weight: bold;">吾輩は猫</div>
+                    <div class="feature-content">
+                        <div class="post-date">文字・読書</div>
+                        <h3>青空フォントビューワー</h3>
+                        <p>青空文庫の作品でフォント表示を確認。縦書き・横書き切替、OpenType機能、3Dテキスト表示、ルビ表示に対応。</p>
+                    </div>
+                </a>
+            </div>
+
+            <!-- 日本語活字ボディ抽出ツール -->
+            <div class="feature-card" data-tags="image-processing,ocr,typography">
+                <a href="japanese-font-extractor.html">
+                    <div class="feature-image" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); display: flex; align-items: center; justify-content: center; color: #2c3e50; font-size: 2rem; font-weight: bold;">字形抽出</div>
+                    <div class="feature-content">
+                        <div class="post-date">画像処理・OCR</div>
+                        <h3>日本語活字ボディ抽出ツール</h3>
+                        <p>スキャンした活字画像から個別の文字を自動抽出。二値化、連結成分解析、ボディサイズ推定機能を搭載。ZIP一括ダウンロード対応。</p>
+                    </div>
+                </a>
+            </div>
+
+            <!-- 手描きイラストデジタル変換ツール -->
+            <div class="feature-card" data-tags="image-processing,art,sketch">
+                <a href="sketch-digitalizer.html">
+                    <div class="feature-image" style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); display: flex; align-items: center; justify-content: center; color: #2c3e50; font-size: 2rem;">✏️➡️💻</div>
+                    <div class="feature-content">
+                        <div class="post-date">画像処理・アート</div>
+                        <h3>手描きイラストデジタル変換</h3>
+                        <p>手描きのスケッチをデジタル化。ベクター・ラスター出力、鉛筆テクスチャ適用、エッジ検出機能。PNG・WebP・SVG対応。</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- カテゴリ検索セクション -->
+    <section id="tag-section" class="tag-section">
+        <h2 class="section-title">カテゴリで探す</h2>
+        <div class="tag-container">
+            <div class="tag-category">
+                <h3>用途別</h3>
+                <div class="tags">
+                    <a href="#" class="tag" data-tag="image-processing">画像処理</a>
+                    <a href="#" class="tag" data-tag="art">アート・デザイン</a>
+                    <a href="#" class="tag" data-tag="text">テキスト処理</a>
+                    <a href="#" class="tag" data-tag="animation">アニメーション</a>
+                    <a href="#" class="tag" data-tag="entertainment">エンターテインメント</a>
+                </div>
+            </div>
+            <div class="tag-category">
+                <h3>技術分野</h3>
+                <div class="tags">
+                    <a href="#" class="tag" data-tag="font">フォント</a>
+                    <a href="#" class="tag" data-tag="ocr">OCR・文字認識</a>
+                    <a href="#" class="tag" data-tag="typography">タイポグラフィ</a>
+                    <a href="#" class="tag" data-tag="visual">ビジュアル</a>
+                    <a href="#" class="tag" data-tag="sketch">スケッチ・手描き</a>
+                </div>
+            </div>
+            <div class="tag-category">
+                <h3>対象ユーザー</h3>
+                <div class="tags">
+                    <a href="#" class="tag" data-tag="designer">デザイナー</a>
+                    <a href="#" class="tag" data-tag="developer">開発者</a>
+                    <a href="#" class="tag" data-tag="student">学生・研究者</a>
+                    <a href="#" class="tag" data-tag="reading">読書愛好家</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 撮影記への誘導 -->
+    <section class="cta">
+        <h2>写真も撮っています</h2>
+        <p>フィルム写真を中心とした撮影記録も公開しています。<br>カメラやレンズ、フィルムの情報と共に写真をお楽しみください。</p>
+        <a href="https://k-e034.github.io/satueiki/" class="btn sticker-button">撮影記を見る</a>
+    </section>
+
+    <!-- トップに戻るボタン -->
+    <button class="nav-btn" id="gallery-btn" title="トップに戻る">↑</button>
+
+    <!-- フッター -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-section">
+                <h3>わたくしの道具箱</h3>
+                <p>日常で使える便利なツールを開発・公開しています。</p>
+            </div>
+            <div class="footer-section">
+                <h3>リンク</h3>
+                <ul>
+                    <li><a href="index.html">ホーム</a></li>
+                    <li><a href="https://k-e034.github.io/satueiki/">撮影記</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>フォロー</h3>
+                <p>最新のツールや撮影記録をチェックしてください。</p>
+                <div class="social-icons">
+                    <a href="#">G</a>
+                    <a href="#">T</a>
+                    <a href="#">B</a>
+                </div>
+            </div>
+        </div>
+        <div class="copyright">&copy; 2025 k.e. All Rights Reserved.</div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="js/common.js"></script>
+    <script>
+        // トップに戻るボタン
+        document.addEventListener("DOMContentLoaded", function() {
+            const galleryBtn = document.getElementById('gallery-btn');
+            if (galleryBtn) {
+                window.addEventListener('scroll', function() {
+                    if (window.scrollY > 300) galleryBtn.classList.add('visible'); 
+                    else galleryBtn.classList.remove('visible');
+                });
+                galleryBtn.addEventListener('click', function() {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                });
+            }
+        });
+
+        // タグフィルタリング機能
+        document.addEventListener('DOMContentLoaded', function() {
+            class TagManager {
+                constructor() {
+                    this.selectedTags = new Set();
+                    this.init();
+                }
+                
+                init() {
+                    this.setupEventListeners();
+                }
+                
+                setupEventListeners() {
+                    document.querySelectorAll('.tag[data-tag]').forEach(tagLink => {
+                        tagLink.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            const tag = tagLink.getAttribute('data-tag');
+                            this.toggleTag(tag);
+                        });
+                    });
+                }
+                
+                toggleTag(tag) {
+                    if (this.selectedTags.has(tag)) {
+                        this.selectedTags.delete(tag);
+                    } else {
+                        this.selectedTags.add(tag);
+                    }
+                    
+                    this.updateUI();
+                    this.filterContent();
+                }
+                
+                updateUI() {
+                    document.querySelectorAll('.tag[data-tag]').forEach(tagElement => {
+                        const tag = tagElement.getAttribute('data-tag');
+                        tagElement.classList.toggle('selected', this.selectedTags.has(tag));
+                    });
+                }
+                
+                filterContent() {
+                    const toolCards = document.querySelectorAll('.feature-card');
+                    
+                    if (this.selectedTags.size === 0) {
+                        toolCards.forEach(card => {
+                            card.style.display = '';
+                            card.style.opacity = '1';
+                        });
+                    } else {
+                        let visibleCount = 0;
+                        
+                        toolCards.forEach(card => {
+                            const cardTags = card.getAttribute('data-tags');
+                            const shouldShow = cardTags && 
+                                Array.from(this.selectedTags).some(tag => 
+                                    cardTags.split(',').includes(tag)
+                                );
+                            
+                            if (shouldShow) {
+                                card.style.display = '';
+                                card.style.opacity = '1';
+                                visibleCount++;
+                            } else {
+                                card.style.display = 'none';
+                            }
+                        });
+                        
+                        console.log(`${visibleCount}個のツールが表示されています。`);
+                    }
+                }
+            }
+            
+            // 初期化
+            window.tagManager = new TagManager();
+            
+            // CSS追加
+            const style = document.createElement('style');
+            style.textContent = `
+                .tag.selected {
+                    background-color: #3498db !important;
+                    color: white !important;
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 8px rgba(52, 152, 219, 0.4);
+                }
+                
+                .intro-section {
+                    text-align: center;
+                    padding: 4rem 2rem;
+                    background: linear-gradient(135deg, rgba(52, 152, 219, 0.1) 0%, rgba(155, 89, 182, 0.1) 100%);
+                    margin-bottom: 3rem;
+                    border-radius: 15px;
+                }
+                
+                .sticker-container {
+                    max-width: 800px;
+                    margin: 0 auto;
+                }
+                
+                .sticker-text {
+                    font-size: 3.5rem;
+                    margin-bottom: 1rem;
+                    color: #2c3e50;
+                    font-weight: 300;
+                }
+                
+                .sticker-subtitle {
+                    font-size: 1.3rem;
+                    color: #7f8c8d;
+                    margin-bottom: 0;
+                }
+                
+                @media (max-width: 768px) {
+                    .sticker-text {
+                        font-size: 2.5rem;
+                    }
+                    
+                    .sticker-subtitle {
+                        font-size: 1.1rem;
+                    }
+                    
+                    .intro-section {
+                        padding: 2rem 1rem;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        });
+    </script>
 </body>
 </html>
