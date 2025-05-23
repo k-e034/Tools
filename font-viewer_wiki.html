@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>フォント表示確認ツール</title>
+    <style>
+        :root {
+            /* デフォルト: 宇宙・スターウォーズ風 */
+            --main-bg: #0a0a1a;
+            --main-fg: #e0e6ff;
+            --accent: #00ffe7;
+            --panel-bg: rgba(20,30,60,0.7);
+            --panel-border: #00ffe7;
+        }
+        html, body {
+            position: static !important;
+            height: 100vh !important;
+            width: 100vw !important;
+            min-height: 100vh !important;
+            min-width: 100vw !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            background: transparent !important;
+            background-color: transparent !important;
+        }
+        body.theme-1 {
+            /* デフォルト: 何も変えない */
+        }
+        body.theme-2 {
+            background: #000 !important;
+        }
+        body.theme-2 #displayArea {
+            color: #ffd900 !important;
+        }
+        body.theme-3 {
+            background: linear-gradient(180deg, #ffb347 0%, #ffb347 70%, #2ee59d 100%) !important;
+        }
+        body.theme-3 #displayArea {
+            color: #222 !important;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--main-bg);
+            width: 100vw;
+            height: 100vh;
+            min-height: 100vh;
+            min-width: 100vw;
+            box-sizing: border-box;
+            color: var(--main-fg);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .container {
+            display: none;
+        }
+
+        h2 {
+            display: none;
+        }
+
+        .controls {
+            display: none;
+        }
+
+        .control-group {
+            display: none;
+        }
+
+        input[type="file"],
+        textarea,
+        input[type="range"],
+        input[type="color"],
+        button {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1em;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+        
+        input[type="file"] {
+            padding: 5px; /* Adjust padding for file input */
+        }
+
+        input[type="file"]:focus,
+        textarea:focus,
+        input[type="range"]:focus,
+        input[type="color"]:focus,
+        button:focus {
+            border-color: #80bdff;
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+        }
+
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        button {
+            background-color: var(--accent);
+            color: var(--main-fg);
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            padding: 10px 15px;
+        }
+
+        button:hover {
+            background-color: var(--accent);
+            color: #fff;
+        }
+
+        .sample-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .sample-buttons button {
+            background-color: #6c757d;
+            flex-grow: 1; /* Distribute space */
+        }
+        .sample-buttons button:hover {
+            background-color: #5a6268;
+        }
+
+
+        #displayArea {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 90vw;
+            min-height: 0;
+            min-width: 0;
+            max-width: 100vw;
+            max-height: 100vh;
+            border: none;
+            padding: 4vw;
+            overflow: auto;
+            line-height: 1.7;
+            box-sizing: border-box;
+            background: transparent !important;
+            background-color: transparent !important;
+            color: #222;
+            border-radius: 0;
+            box-shadow: none;
+            transition: color 0.3s;
+            font-size: 40px;
+            outline: none;
+            z-index: 1;
+            user-select: text;
+            cursor: text;
+            display: block;
+            margin: auto;
+            text-align: left;
+        }
+        #displayArea[contenteditable="true"]:empty:before {
+            content: 'ここにテキストを直接入力・編集できます';
+            color: #bbb;
+            font-size: 0.7em;
+        }
+
+        .font-not-loaded-placeholder {
+            font-style: italic;
+            color: #777;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+        }
+        
+        #fontSizeValueDisplay {
+            font-weight: normal;
+            color: #007bff;
+        }
+
+        #displayArea, #displayArea rt {
+            font-family: 'UserCustomFont', sans-serif;   /* ① 本文もルビも同フォントを優先 */
+        }
+
+        /* ② OpenType ruby フィーチャを強制的に ON  
+            （ブラウザによっては既定で有効ですが、念のため） */
+        #displayArea {
+            /* font-feature-settings: "ruby"; */
+            /* -webkit-font-feature-settings: "ruby"; */
+        }
+        /* ③ ルビのサイズは本文サイズの 50 % – スライダー連動にするなら変数化が便利 */
+        :root { --ruby-scale: .5; }
+        #displayArea rt { font-size: calc(var(--ruby-scale) * 1em); }
+
+        /* ④ 縦書き時に "横に付く" ルビを指定  
+            ※ Safari/Firefox は `inter-character`、Chrome は実験的機能 */
+        #displayArea.vertical-rl {
+            writing-mode: vertical-rl;
+            -webkit-writing-mode: vertical-rl;
+            -ms-writing-mode: tb-rl;
+            text-orientation: mixed;
+            width: 40vw;
+            height: 100vh;
+        }
+        #displayArea:not(.vertical-rl) {
+            flex-direction: row;
+        }
+
+        /* Wikipedia記事パネル */
+        #aozoraPanel {
+            position: fixed;
+            right: 60px;
+            bottom: 2vh;
+            z-index: 200;
+            background: var(--panel-bg);
+            color: var(--main-fg);
+            border-radius: 12px;
+            box-shadow: 0 2px 12px #0008;
+            padding: 16px;
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            width: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        #aozoraPanel input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            outline: none;
+            background: rgba(255,255,255,0.9);
+            color: #222;
+        }
+
+        #aozoraPanel select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            outline: none;
+            background: rgba(255,255,255,0.9);
+            color: #222;
+            max-height: 200px;
+        }
+
+        #aozoraPanel button {
+            padding: 8px 16px;
+            background-color: var(--accent);
+            color: #222;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95em;
+        }
+
+        #aozoraPanel button:hover {
+            opacity: 0.8;
+        }
+
+        #aozoraPanel button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #aozoraLoadingMsg {
+            text-align: center;
+            color: var(--accent);
+            font-size: 0.9em;
+            display: none;
+        }
+
+        /* 3Dエフェクトパネルのボタンスタイル */
+        .effect-btn {
+            padding: 8px 12px;
+            background-color: rgba(255,255,255,0.1);
+            color: var(--main-fg);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+
+        .effect-btn:hover {
+            background-color: rgba(255,255,255,0.2);
+            border-color: var(--accent);
+        }
+
+        .effect-btn.active {
+            background-color: var(--accent);
+            color: #222;
+            border-color: var(--accent);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .controls {
+                grid-template-columns: 1fr;
+            }
+            body {
+                padding: 8px;
+            }
+            .container {
+                padding: 12px;
+            }
+            textarea {
+                min-height: 100px;
+            }
+            #displayArea {
+                width: 98vw;
+                font-size: 20px;
+                padding: 2vw;
+            }
+            #displayArea.vertical-rl {
+                width: 70vw;
+                height: 98vh;
+                font-size: 20px;
+            }
+            #displayArea3DContainer {
+                left: 2vw;
+                top: 8vh;
+                width: 96vw;
+                height: 80vh;
+            }
+            #floatingBtns {
+                right: 2vw;
+                bottom: 2vh;
+                gap: 8px;
+            }
+            #floatingBtns button {
+                font-size: 1.2em;
+                padding: 12px 0;
+                min-width: 44px;
+                min-height: 44px;
+            }
+            #opentypePanel, #aozoraPanel {
+                right: 2vw;
+                bottom: 10vh;
+                padding: 8px 8px;
+                font-size: 0.95em;
+            }
+            #aozoraPanel {
+                width: 280px;
+            }
+        }
+
+        #bg3dCanvas {
+            position: fixed;
+            z-index: -1;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            background: transparent !important;
+        }
+
+        body.theme-1 #floatingBtns button {
+            background-color: #00ffe7 !important;
+            color: #222 !important;
+        }
+        body.theme-2 #floatingBtns button {
+            background-color: #ffb300 !important;
+            color: #fff !important;
+        }
+        body.theme-3 #floatingBtns button {
+            background-color: #2e8b57 !important;
+            color: #222 !important;
+        }
+
+        /* 3Dエフェクト用のCSS */
+        .effect-3d-basic {
+            text-shadow: 
+                1px 1px 0 #ccc,
+                2px 2px 0 #bbb,
+                3px 3px 0 #aaa,
+                4px 4px 0 #999,
+                5px 5px 0 #888,
+                6px 6px 10px rgba(0,0,0,0.3);
+            transform: perspective(500px) rotateX(15deg);
+        }
+
+        .effect-3d-neon {
+            text-shadow: 
+                0 0 5px currentColor,
+                0 0 10px currentColor,
+                0 0 15px currentColor,
+                0 0 20px currentColor,
+                2px 2px 0 rgba(0,0,0,0.8),
+                4px 4px 0 rgba(0,0,0,0.6),
+                6px 6px 0 rgba(0,0,0,0.4);
+            transform: perspective(500px) rotateX(10deg);
+        }
+
+        .effect-3d-emboss {
+            text-shadow: 
+                -1px -1px 0 rgba(255,255,255,0.8),
+                1px 1px 0 rgba(0,0,0,0.8),
+                2px 2px 0 rgba(0,0,0,0.6),
+                3px 3px 0 rgba(0,0,0,0.4),
+                4px 4px 5px rgba(0,0,0,0.5);
+            transform: perspective(600px) rotateX(5deg) rotateY(-5deg);
+        }
+
+        .effect-3d-deep {
+            text-shadow: 
+                1px 1px 0 #ddd,
+                2px 2px 0 #ccc,
+                3px 3px 0 #bbb,
+                4px 4px 0 #aaa,
+                5px 5px 0 #999,
+                6px 6px 0 #888,
+                7px 7px 0 #777,
+                8px 8px 0 #666,
+                9px 9px 0 #555,
+                10px 10px 20px rgba(0,0,0,0.5);
+            transform: perspective(800px) rotateX(20deg) rotateY(-10deg);
+        }
+
+        .effect-3d-glow {
+            text-shadow: 
+                0 0 10px currentColor,
+                0 0 20px currentColor,
+                0 0 30px currentColor,
+                0 0 40px currentColor,
+                2px 2px 0 rgba(0,0,0,0.5),
+                4px 4px 0 rgba(0,0,0,0.3),
+                6px 6px 10px rgba(0,0,0,0.3);
+            filter: drop-shadow(0 0 15px currentColor);
+            transform: perspective(400px) rotateX(8deg);
+        }
+
+        /* 3Dエフェクトのアニメーション */
+        .effect-3d-animated {
+            animation: rotate3d 6s ease-in-out infinite;
+        }
+
+        @keyframes rotate3d {
+            0%, 100% { transform: perspective(800px) rotateX(10deg) rotateY(-5deg); }
+            25% { transform: perspective(800px) rotateX(15deg) rotateY(5deg); }
+            50% { transform: perspective(800px) rotateX(5deg) rotateY(10deg); }
+            75% { transform: perspective(800px) rotateX(20deg) rotateY(-10deg); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- 背景3Dグリッド用div（Three.jsで波動グリッドを描画） -->
+    <div id="bg3dCanvas" style="position:fixed;z-index:-1;top:0;left:0;width:100vw;height:100vh;pointer-events:none;"></div>
+
+    <!-- メイン表示エリア（直接編集可） -->
+    <div id="displayArea" contenteditable="true" spellcheck="false"></div>
+
+    <!-- Three.js 3Dテキスト用Canvas（プレーンテキストと排他的表示） -->
+    <div id="displayArea3DContainer" style="position:absolute;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:10;display:none;">
+        <canvas id="displayArea3D" style="width:100%;height:100%;display:block;"></canvas>
+    </div>
+
+    <!-- フローティング設定ボタン群 -->
+    <div id="floatingBtns" style="position:fixed;right:2vw;bottom:2vh;z-index:100;display:flex;flex-direction:column;gap:12px;">
+        <input type="file" id="fontFile" accept=".otf,.ttf,.woff,.woff2" style="display:none;">
+        <button id="fontFileBtn" title="フォントを選択">&#128193;</button>
+        <button id="themeBtn" title="テーマ切替">&#9881;</button>
+        <button id="writingModeBtn" title="縦書き/横書き切替">縦</button>
+        <button id="opentypeBtn" title="OpenType機能">OT</button>
+        <button id="threeDEffectBtn" title="3Dエフェクト">3D</button>
+        <button id="aozoraBtn" title="Wikipedia記事ランダム表示">Wiki</button>
+    </div>
+
+    <!-- OpenType機能パネル（ミニマルなカンマ区切り入力） -->
+    <div id="opentypePanel" style="position:fixed;right:60px;bottom:2vh;z-index:200;background:var(--panel-bg);color:var(--main-fg);border-radius:12px;box-shadow:0 2px 12px #0008;padding:10px 16px;display:none;">
+        <label style="font-size:0.95em;">OpenType機能（カンマ区切りで入力）</label>
+        <input id="opentypeInput" type="text" placeholder="例: liga, kern, ss01" style="width:180px;font-size:1em;padding:6px 8px;border-radius:6px;border:1px solid #ccc;outline:none;">
+    </div>
+
+    <!-- 3Dエフェクト選択パネル -->
+    <div id="threeDEffectPanel" style="position:fixed;right:60px;bottom:2vh;z-index:200;background:var(--panel-bg);color:var(--main-fg);border-radius:12px;box-shadow:0 2px 12px #0008;padding:16px;display:none;flex-direction:column;gap:8px;width:250px;">
+        <div style="font-size:1.1em;font-weight:bold;text-align:center;margin-bottom:8px;">3Dエフェクト</div>
+        <button class="effect-btn active" data-effect="none">3D無効</button>
+        <button class="effect-btn" data-effect="plane">平面</button>
+        <button class="effect-btn" data-effect="cylinder">円筒</button>
+        <button class="effect-btn" data-effect="sphere">球体</button>
+        <button class="effect-btn" data-effect="wave">波形</button>
+        <button class="effect-btn" data-effect="cube">立方体</button>
+        <label style="margin-top:8px;">
+            <input type="checkbox" id="autoRotate" checked> 自動回転
+        </label>
+        <label>
+            <input type="checkbox" id="mouseControl"> マウス操作
+        </label>
+    </div>
+
+    <!-- Wikipedia記事パネル -->
+    <div id="aozoraPanel" style="position:fixed;right:60px;bottom:2vh;z-index:200;background:var(--panel-bg);color:var(--main-fg);border-radius:12px;box-shadow:0 2px 12px #0008;padding:16px;display:none;flex-direction:column;gap:12px;width:300px;max-height:400px;overflow-y:auto;">
+        <div style="font-size:1.1em;font-weight:bold;text-align:center;margin-bottom:8px;">Wikipedia記事</div>
+        <button id="loadWikipediaBtn" style="padding:8px 16px;background-color:var(--accent);color:#222;border:none;border-radius:6px;cursor:pointer;font-size:0.95em;">ランダム記事を読み込み</button>
+        <div id="aozoraLoadingMsg" style="text-align:center;color:var(--accent);font-size:0.9em;display:none;">読み込み中...</div>
+    </div>
+
+    <!-- Three.js CDN（より安定したバージョンを使用） -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/examples/js/loaders/FontLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/examples/js/geometries/TextGeometry.js"></script>
+    <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+    <script>
+    window.onload = function() {
+        const fontFileInput = document.getElementById('fontFile');
+        const fontFileBtn = document.getElementById('fontFileBtn');
+        const themeBtn = document.getElementById('themeBtn');
+        const writingModeBtn = document.getElementById('writingModeBtn');
+        const opentypeBtn = document.getElementById('opentypeBtn');
+        const opentypePanel = document.getElementById('opentypePanel');
+        const opentypeInput = document.getElementById('opentypeInput');
+        const displayArea = document.getElementById('displayArea');
+        
+        // Wikipedia関連の要素
+        const aozoraBtn = document.getElementById('aozoraBtn');
+        const aozoraPanel = document.getElementById('aozoraPanel');
+        const aozoraLoadingMsg = document.getElementById('aozoraLoadingMsg');
+        
+        // 3Dエフェクト関連の要素
+        const threeDEffectBtn = document.getElementById('threeDEffectBtn');
+        const threeDEffectPanel = document.getElementById('threeDEffectPanel');
+        const autoRotate = document.getElementById('autoRotate');
+        const mouseControl = document.getElementById('mouseControl');
+        
+
+        let currentFontObjectURL = null;
+        let isVerticalWriting = false;
+        let customFontStyleElement = null;
+        let activeOpenTypeFeatures = '';
+        let isComposing = false;
+        let current3DEffect = 'none';
+        let isAnimationEnabled = false;
+        let isAutoRotate = true, isMouseControl = false;
+
+        const FONT_FAMILY_NAME = 'UserCustomFont';
+
+        // Three.js関連の変数（先に宣言）
+        let threeRenderer, threeScene, threeCamera, threeTextMesh, threeControls;
+        let animate3DId = null;
+        const displayArea3D = document.getElementById('displayArea3D');
+        const displayArea3DContainer = document.getElementById('displayArea3DContainer');
+
+        // ルビ変換関数（青空文庫記法をHTMLルビに変換）
+        function aozoraToRubyHTML(text) {
+            return text.replace(/｜([^《》]+)《([^》]+)》/g, '<ruby>$1<rt>$2</rt></ruby>')
+                      .replace(/([一-龯々]+)《([^》]+)》/g, '<ruby>$1<rt>$2</rt></ruby>');
+        }
+
+        // Wikipedia記事読み込み関数
+        async function loadWikipediaText() {
+            aozoraLoadingMsg.style.display = 'block';
+            try {
+                const wikiUrl = 'https://twitter-proxy.k-e034-twitter-proxy.workers.dev';
+                
+                const res = await fetch(wikiUrl);
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}: Wikipedia記事の取得に失敗しました`);
+                }
+                
+                const data = await res.json();
+                
+                // より柔軟なデータ処理
+                const title = data.title || '無題';
+                const extract = data.extract || data.content || data.text || 'コンテンツが見つかりませんでした';
+                
+                // タイトル＋本文
+                displayArea.innerText = `${title}\n\n${extract}`;
+                updateDisplayArea();
+                update3DTextFromInput(); // 3Dテキストも更新
+                aozoraPanel.style.display = 'none';
+                
+            } catch (e) {
+                console.error('Wikipedia記事の読み込みエラー:', e);
+                
+                // より詳細なエラーメッセージ
+                let errorMsg = 'Wikipedia記事の読み込みに失敗しました。';
+                if (e.name === 'TypeError' && e.message.includes('fetch')) {
+                    errorMsg += '\nネットワーク接続を確認してください。';
+                } else if (e.message.includes('HTTP')) {
+                    errorMsg += '\nサーバーエラーが発生しました。';
+                } else {
+                    errorMsg += `\n詳細: ${e.message}`;
+                }
+                
+                alert(errorMsg);
+            } finally {
+                aozoraLoadingMsg.style.display = 'none';
+            }
+        }
+
+        function initializeApp() {
+            updateDisplayArea();
+            fontFileInput.addEventListener('change', handleFontFileSelection);
+            fontFileBtn.addEventListener('click', ()=>fontFileInput.click());
+            
+            // テーマ切替ボタン
+            const themes = ['theme-1','theme-2','theme-3'];
+            themeBtn.addEventListener('click', ()=>{
+                let now = themes.findIndex(t=>document.body.classList.contains(t));
+                let next = (now+1)%themes.length;
+                document.body.classList.remove(...themes);
+                document.body.classList.add(themes[next]);
+                setBgWaveTheme(themes[next]);
+                updateTextColorAuto();
+            });
+            
+            // 縦書き/横書き切替
+            writingModeBtn.addEventListener('click', ()=>{
+                isVerticalWriting = !isVerticalWriting;
+                writingModeBtn.textContent = isVerticalWriting ? '横' : '縦';
+                updateDisplayArea();
+            });
+            
+            // OpenType機能パネル
+            opentypeBtn.addEventListener('click', ()=>{
+                opentypePanel.style.display = opentypePanel.style.display==='flex' ? 'none' : 'flex';
+                aozoraPanel.style.display = 'none'; // 他のパネルを閉じる
+                threeDEffectPanel.style.display = 'none'; // 他のパネルを閉じる
+            });
+            opentypeInput.addEventListener('input', ()=>{
+                activeOpenTypeFeatures = opentypeInput.value;
+                updateOpenTypeFeatures();
+            });
+            
+            // 3Dエフェクトパネル
+            threeDEffectBtn.addEventListener('click', ()=>{
+                threeDEffectPanel.style.display = threeDEffectPanel.style.display==='flex' ? 'none' : 'flex';
+                opentypePanel.style.display = 'none'; // 他のパネルを閉じる
+                aozoraPanel.style.display = 'none'; // 他のパネルを閉じる
+            });
+            
+            // 3Dエフェクトボタンのイベントリスナー
+            document.querySelectorAll('.effect-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    apply3DEffect(btn.dataset.effect);
+                });
+            });
+            
+            // アニメーション切り替えのイベントリスナー
+            autoRotate.addEventListener('change', toggleAnimation);
+            mouseControl.addEventListener('change', toggleAnimation);
+            
+            // Wikipedia記事パネル
+            aozoraBtn.addEventListener('click', ()=>{
+                aozoraPanel.style.display = aozoraPanel.style.display==='flex' ? 'none' : 'flex';
+                opentypePanel.style.display = 'none'; // 他のパネルを閉じる
+                threeDEffectPanel.style.display = 'none'; // 他のパネルを閉じる
+            });
+            
+            // Wikipedia記事読み込みボタン（パネル内のボタンが存在する場合）
+            const loadWikipediaBtn = document.getElementById('loadWikipediaBtn');
+            if (loadWikipediaBtn) {
+                loadWikipediaBtn.addEventListener('click', loadWikipediaText);
+            }
+            
+            // IME入力対応: compositionstart/endでフラグ管理
+            displayArea.addEventListener('compositionstart', ()=>{ isComposing = true; });
+            displayArea.addEventListener('compositionend', ()=>{
+                isComposing = false;
+                updateDisplayArea();
+                update3DTextFromInput(); // 3Dテキストも更新
+            });
+            
+            // 表示エリア直接編集
+            displayArea.addEventListener('input', ()=>{
+                if(!isComposing) {
+                    updateDisplayArea();
+                    update3DTextFromInput(); // 3Dテキストも更新
+                }
+            });
+            
+            // 初期テキスト
+            displayArea.innerHTML = 'テキストエリア';
+            updateTextColorAuto();
+            
+            // リサイズ対応
+            window.addEventListener('resize', ()=>{
+                if(threeRenderer && threeCamera) {
+                    displayArea3D.width = displayArea3DContainer.clientWidth;
+                    displayArea3D.height = displayArea3DContainer.clientHeight;
+                    threeRenderer.setSize(displayArea3D.width, displayArea3D.height, false);
+                    threeCamera.aspect = displayArea3D.width/displayArea3D.height;
+                    threeCamera.updateProjectionMatrix();
+                }
+            });
+        }
+
+        // updateDisplayAreaを統合
+        function updateDisplayArea() {
+            // --- キャレット位置保存 ---
+            let sel = window.getSelection();
+            let caretOffset = 0;
+            if(sel && sel.rangeCount > 0) {
+                let range = sel.getRangeAt(0);
+                let preCaretRange = range.cloneRange();
+                preCaretRange.selectNodeContents(displayArea);
+                preCaretRange.setEnd(range.endContainer, range.endOffset);
+                caretOffset = preCaretRange.toString().length;
+            }
+            // ルビ変換（contenteditableの中身をルビHTMLに）
+            let raw = displayArea.innerText || '';
+            let html = raw ? aozoraToRubyHTML(raw) : '';
+            // ★ここで改行を<br>に変換
+            html = html.replace(/\n/g, '<br>');
+            if (!html) html = '';
+            displayArea.innerHTML = html;
+            // --- キャレット位置復元 ---
+            function setCaretByOffset(node, offset) {
+                let stack = [node], count = 0, found = false;
+                while(stack.length && !found) {
+                    let n = stack.shift();
+                    if(n.nodeType === 3) { // text node
+                        let len = n.nodeValue.length;
+                        if(count + len >= offset) {
+                            let sel = window.getSelection();
+                            let range = document.createRange();
+                            range.setStart(n, offset - count);
+                            range.collapse(true);
+                            sel.removeAllRanges();
+                            sel.addRange(range);
+                            found = true;
+                            break;
+                        }
+                        count += len;
+                    } else if(n.childNodes && n.childNodes.length) {
+                        for(let i=0;i<n.childNodes.length;i++) stack.push(n.childNodes[i]);
+                    }
+                }
+            }
+            setCaretByOffset(displayArea, caretOffset);
+            // 書字方向
+            if(isVerticalWriting) {
+                displayArea.classList.add('vertical-rl');
+            } else {
+                displayArea.classList.remove('vertical-rl');
+            }
+            updateTextColorAuto();
+            updateOpenTypeFeatures();
+        }
+
+        function handleFontFileSelection(event) {
+            const file = event.target.files[0];
+            
+            if (currentFontObjectURL) {
+                URL.revokeObjectURL(currentFontObjectURL);
+                currentFontObjectURL = null;
+            }
+            if (customFontStyleElement) {
+                customFontStyleElement.remove();
+                customFontStyleElement = null;
+            }
+            displayArea.style.fontFamily = '';
+
+            if (!file) {
+                displayArea.innerHTML = `<span class="font-not-loaded-placeholder">フォントファイルが選択されていません。</span>`;
+                return;
+            }
+
+            const allowedTypes = ['font/otf', 'font/ttf', 'font/woff', 'font/woff2'];
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+            const knownExtensions = ['otf', 'ttf', 'woff', 'woff2'];
+
+            if (!allowedTypes.includes(file.type) && !knownExtensions.includes(fileExtension)) {
+                displayArea.innerHTML = `<span class="font-not-loaded-placeholder">エラー: .otf, .ttf, .woff, .woff2 形式の<br>フォントファイルを選択してください。</span>`;
+                return;
+            }
+
+            currentFontObjectURL = URL.createObjectURL(file);
+
+            customFontStyleElement = document.createElement('style');
+            customFontStyleElement.textContent = `
+                @font-face {
+                    font-family: '${FONT_FAMILY_NAME}';
+                    src: url('${currentFontObjectURL}');
+                }
+            `;
+            document.head.appendChild(customFontStyleElement);
+            
+            displayArea.style.fontFamily = FONT_FAMILY_NAME;
+            updateDisplayArea();
+        }
+
+
+        // Initialize the application
+        initializeApp();
+
+        // ics-creative/180725_three_waves風 3D波動グリッド背景
+        const bg3dDiv = document.getElementById('bg3dCanvas');
+        let bgWaveRenderer, bgWaveScene, bgWaveCamera, bgWaveMesh, bgWaveAnimId;
+        function initBgWaveGrid() {
+            // 既存Three.jsインスタンス破棄
+            if(bgWaveRenderer && bgWaveRenderer.domElement.parentNode) {
+                bgWaveRenderer.domElement.parentNode.removeChild(bgWaveRenderer.domElement);
+            }
+            bgWaveRenderer = new THREE.WebGLRenderer({alpha:true,antialias:true});
+            bgWaveRenderer.setClearColor(0x000000, 0); // 透明
+            bgWaveRenderer.setSize(window.innerWidth, window.innerHeight);
+            bg3dDiv.appendChild(bgWaveRenderer.domElement);
+            bgWaveScene = new THREE.Scene();
+            // グリッドサイズをウィンドウに合わせて動的に
+            const pxPerUnit = 10;
+            const gridW = window.innerWidth / pxPerUnit;
+            const gridH = window.innerHeight / pxPerUnit;
+            const segW = 80, segH = 40;
+            // OrthographicCameraで画面全体をカバー
+            const left = -gridW/2, right = gridW/2, top = gridH/2, bottom = -gridH/2;
+            bgWaveCamera = new THREE.OrthographicCamera(left, right, top, bottom, 1, 1000);
+            bgWaveCamera.position.set(0, 180, 180); // 高く・奥に
+            bgWaveCamera.lookAt(0, 0, 0);
+            // 波動グリッド生成
+            const geometry = new THREE.PlaneGeometry(gridW, gridH, segW, segH);
+            const material = new THREE.MeshPhongMaterial({color:0x00ffe7, emissive:0x003366, shininess:80, side:THREE.DoubleSide, wireframe:true, transparent:true, opacity:0.7});
+            bgWaveMesh = new THREE.Mesh(geometry, material);
+            bgWaveMesh.rotation.x = -Math.PI/2.1; // さらに斜め（約-86度）
+            bgWaveScene.add(bgWaveMesh);
+            // ライト
+            bgWaveScene.add(new THREE.AmbientLight(0xffffff,0.7));
+            let dirLight = new THREE.DirectionalLight(0xffffff,0.7);
+            dirLight.position.set(0,1,2);
+            bgWaveScene.add(dirLight);
+        }
+        function animateBgWave() {
+            if(!bgWaveMesh || !bgWaveRenderer) return;
+            let t = performance.now()/1000;
+            // 波動アニメーション
+            let pos = bgWaveMesh.geometry.attributes.position;
+            for(let i=0;i<pos.count;i++){
+                let ix = i % 81, iy = Math.floor(i/81); // segW+1 = 81
+                pos.setZ(i, Math.sin(t*1.2 + ix*0.3 + iy*0.5)*2.2 + Math.cos(t*0.7 + ix*0.5 - iy*0.2)*1.2);
+            }
+            pos.needsUpdate = true;
+            bgWaveRenderer.render(bgWaveScene, bgWaveCamera);
+            bgWaveAnimId = requestAnimationFrame(animateBgWave);
+        }
+        function resizeBgWave() {
+            if(bgWaveRenderer) {
+                bgWaveRenderer.setSize(window.innerWidth, window.innerHeight);
+            }
+            // グリッド・カメラも再生成
+            initBgWaveGrid();
+        }
+        // テーマ切り替え時に波の色を変える場合はここで対応可能
+        function setBgWaveTheme(theme) {
+            if(bgWaveMesh) {
+                if(theme==='theme-2') {
+                    bgWaveMesh.material.color.set('#444444'); // より黒に近いグレー
+                } else if(theme==='theme-3') {
+                    bgWaveMesh.material.color.set('#2e8b57'); // 深緑
+                } else {
+                    bgWaveMesh.material.color.set(0x00ffe7); // デフォルト
+                }
+            }
+        }
+        // 初期化・リサイズ・テーマ切切替フック
+        function setupBgWaveGrid() {
+            console.log('Background wave grid setup starting...');
+            initBgWaveGrid();
+            if(bgWaveAnimId) cancelAnimationFrame(bgWaveAnimId);
+            animateBgWave();
+            window.addEventListener('resize', resizeBgWave);
+            console.log('Background wave grid setup completed');
+        }
+        
+        // ページ読み込み完了後に初期化
+        function initializeAll() {
+            console.log('Initializing all components...');
+            setupBgWaveGrid();
+            
+            // 3Dテキストの初期化（より確実に）
+            setTimeout(() => {
+                try {
+                    if (displayArea3D && displayArea3DContainer) {
+                        console.log('3D text canvas ready');
+                        // 初期3Dエフェクト設定（プレーンテキストから開始）
+                        apply3DEffect('none');
+                        console.log('3D effect initialized');
+                    } else {
+                        console.error('3D canvas elements not found');
+                    }
+                } catch(error) {
+                    console.error('3D initialization error:', error);
+                }
+            }, 500); // より長い遅延で確実に初期化
+        }
+        
+        // 初期化実行
+        initializeAll();
+
+        // Three.js 3Dテキスト実装（ユーザーフォント対応）
+        function initThreeText() {
+            // Canvas要素のサイズを設定
+            const containerWidth = displayArea3DContainer.clientWidth || window.innerWidth;
+            const containerHeight = displayArea3DContainer.clientHeight || window.innerHeight;
+            
+            displayArea3D.width = containerWidth;
+            displayArea3D.height = containerHeight;
+            
+            // Three.js初期化
+            threeRenderer = new THREE.WebGLRenderer({canvas: displayArea3D, alpha: true, antialias: true});
+            threeRenderer.setSize(containerWidth, containerHeight, false);
+            threeRenderer.setClearColor(0x000000, 0);
+            
+            threeScene = new THREE.Scene();
+            threeCamera = new THREE.PerspectiveCamera(75, containerWidth/containerHeight, 0.1, 1000);
+            threeCamera.position.set(0, 0, 3); // カメラを少し手前に
+            
+            // ライト設定
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            threeScene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            directionalLight.position.set(5, 5, 5);
+            threeScene.add(directionalLight);
+            
+            // OrbitControlsの初期化
+            if (typeof THREE.OrbitControls !== 'undefined') {
+                threeControls = new THREE.OrbitControls(threeCamera, displayArea3D);
+                threeControls.enabled = isMouseControl;
+                threeControls.enableDamping = true;
+                threeControls.dampingFactor = 0.05;
+                threeControls.enableZoom = true;
+                threeControls.enableRotate = true;
+                threeControls.enablePan = true;
+                console.log('OrbitControls initialized');
+            } else {
+                console.warn('OrbitControls not available');
+            }
+            
+            console.log('Three.js initialized:', {
+                width: containerWidth,
+                height: containerHeight,
+                camera: threeCamera.position,
+                controls: !!threeControls
+            });
+        }
+
+        // ユーザーフォントでテキストテクスチャを作成
+        function createTextTexture(text, fontFamily = 'Arial', fontSize = 64) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            // キャンバスサイズを設定（テキストサイズに基づいて動的に）
+            canvas.width = 1024;
+            canvas.height = 256;
+            
+            // フォントスタイル設定
+            context.font = `bold ${fontSize}px "${fontFamily}", Arial, sans-serif`;
+            context.fillStyle = 'white';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            
+            // 背景をクリア（透明）
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // デバッグ用：背景に薄い色を追加
+            context.fillStyle = 'rgba(50, 50, 50, 0.3)';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // テキストを描画
+            context.fillStyle = 'white';
+            context.fillText(text, canvas.width / 2, canvas.height / 2);
+            
+            console.log('Text texture created:', {
+                text: text,
+                fontFamily: fontFamily,
+                fontSize: fontSize,
+                canvasSize: `${canvas.width}x${canvas.height}`
+            });
+            
+            // テクスチャとして返す
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            
+            return texture;
+        }
+
+        // 3Dエフェクトを適用
+        function apply3DEffect(effectType) {
+            try {
+                // Three.jsレンダラーの安全な初期化チェック
+                if (typeof threeRenderer === 'undefined' || !threeRenderer) {
+                    console.log('Initializing Three.js renderer...');
+                    initThreeText();
+                }
+                
+                // 既存のメッシュを削除
+                if (threeTextMesh) {
+                    threeScene.remove(threeTextMesh);
+                    if (threeTextMesh.geometry) threeTextMesh.geometry.dispose();
+                    if (threeTextMesh.material && threeTextMesh.material.map) threeTextMesh.material.map.dispose();
+                    if (threeTextMesh.material) threeTextMesh.material.dispose();
+                }
+                
+                current3DEffect = effectType;
+                
+                if (effectType === 'none') {
+                    displayArea3DContainer.style.display = 'none';
+                    displayArea.style.display = 'block'; // プレーンテキストを表示
+                    displayArea3DContainer.style.pointerEvents = 'none'; // マウスイベント無効
+                    stop3DAnimation(); // アニメーション停止
+                    return;
+                }
+                
+                displayArea3DContainer.style.display = 'block';
+                displayArea.style.display = 'none'; // プレーンテキストを非表示
+                
+                // 3Dコンテナでマウスイベントを有効にする
+                displayArea3DContainer.style.pointerEvents = 'auto';
+                
+                console.log('3D display activated:', {
+                    effect: effectType,
+                    containerDisplay: displayArea3DContainer.style.display,
+                    plainTextDisplay: displayArea.style.display,
+                    containerVisible: displayArea3DContainer.offsetWidth > 0
+                });
+                
+                // テキストを取得（最初の行のみ）
+                const text = displayArea.innerText.split('\n')[0] || '3Dテキスト';
+                
+                // 現在のフォントファミリーを取得
+                const fontFamily = displayArea.style.fontFamily || FONT_FAMILY_NAME || 'Arial';
+                
+                // テキストテクスチャを作成
+                const textTexture = createTextTexture(text, fontFamily, 80);
+                
+                let geometry, material;
+                
+                // エフェクトタイプに応じてジオメトリを作成
+                switch(effectType) {
+                    case 'plane':
+                        geometry = new THREE.PlaneGeometry(6, 2); // サイズを大きく
+                        break;
+                    case 'cylinder':
+                        geometry = new THREE.CylinderGeometry(1.5, 1.5, 1, 32);
+                        break;
+                    case 'sphere':
+                        geometry = new THREE.SphereGeometry(1.5, 32, 16);
+                        break;
+                    case 'wave':
+                        geometry = new THREE.PlaneGeometry(6, 2, 32, 8);
+                        // 波形の変形
+                        const positions = geometry.attributes.position;
+                        for (let i = 0; i < positions.count; i++) {
+                            const x = positions.getX(i);
+                            const z = Math.sin(x * 2) * 0.2;
+                            positions.setZ(i, z);
+                        }
+                        positions.needsUpdate = true;
+                        break;
+                    case 'cube':
+                        geometry = new THREE.BoxGeometry(3, 1, 0.5);
+                        break;
+                    default:
+                        geometry = new THREE.PlaneGeometry(6, 2);
+                }
+                
+                // マテリアル作成
+                material = new THREE.MeshPhongMaterial({
+                    map: textTexture,
+                    transparent: true,
+                    side: THREE.DoubleSide
+                });
+                
+                // メッシュ作成
+                threeTextMesh = new THREE.Mesh(geometry, material);
+                threeScene.add(threeTextMesh);
+                
+                console.log('3D text mesh created:', {
+                    effect: effectType,
+                    text: text,
+                    fontFamily: fontFamily,
+                    position: threeTextMesh.position,
+                    scale: threeTextMesh.scale
+                });
+                
+                // アクティブボタンの更新
+                document.querySelectorAll('.effect-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.effect === effectType) {
+                        btn.classList.add('active');
+                    }
+                });
+                
+                // レンダリング開始
+                start3DAnimation();
+                
+            } catch(error) {
+                console.error('3D effect application error:', error);
+                // エラーが発生した場合は3Dを無効にしてプレーンテキストを表示
+                displayArea3DContainer.style.display = 'none';
+                displayArea.style.display = 'block';
+                current3DEffect = 'none';
+            }
+        }
+
+        // 3Dアニメーション（改善版）
+        function animate3D() {
+            if (!threeTextMesh || current3DEffect === 'none' || !threeRenderer) {
+                if (animate3DId) {
+                    cancelAnimationFrame(animate3DId);
+                    animate3DId = null;
+                }
+                return;
+            }
+            
+            // OrbitControlsの更新
+            if (threeControls && threeControls.enabled) {
+                threeControls.update();
+            }
+            
+            // 自動回転（マウス操作有効時は無効にする）
+            if (isAutoRotate && (!threeControls || !threeControls.enabled)) {
+                threeTextMesh.rotation.x += 0.01;
+                threeTextMesh.rotation.y += 0.01;
+            }
+            
+            // 波形の場合は特別なアニメーション
+            if (current3DEffect === 'wave' && threeTextMesh.geometry.attributes.position) {
+                const time = Date.now() * 0.001;
+                const positions = threeTextMesh.geometry.attributes.position;
+                for (let i = 0; i < positions.count; i++) {
+                    const x = positions.getX(i);
+                    const z = Math.sin(x * 2 + time * 2) * 0.2;
+                    positions.setZ(i, z);
+                }
+                positions.needsUpdate = true;
+            }
+            
+            // レンダリング
+            try {
+                threeRenderer.render(threeScene, threeCamera);
+            } catch(e) {
+                console.error('3D rendering error:', e);
+            }
+            
+            animate3DId = requestAnimationFrame(animate3D);
+        }
+        
+        // 3Dアニメーション開始
+        function start3DAnimation() {
+            if (animate3DId) {
+                cancelAnimationFrame(animate3DId);
+            }
+            animate3D();
+        }
+        
+        // 3Dアニメーション停止
+        function stop3DAnimation() {
+            if (animate3DId) {
+                cancelAnimationFrame(animate3DId);
+                animate3DId = null;
+            }
+        }
+
+        // アニメーション・マウス操作の切り替え
+        function toggleAnimation() {
+            isAutoRotate = autoRotate.checked;
+            isMouseControl = mouseControl.checked;
+            
+            if (threeControls) {
+                threeControls.enabled = isMouseControl;
+                console.log('OrbitControls enabled:', isMouseControl);
+            }
+        }
+
+        // テキスト更新時に3Dテキストも更新
+        function update3DTextFromInput() {
+            try {
+                if (current3DEffect !== 'none' && typeof threeRenderer !== 'undefined') {
+                    apply3DEffect(current3DEffect);
+                }
+            } catch(error) {
+                console.error('3D text update error:', error);
+            }
+        }
+
+        // 背景色から自動で見やすい文字色を設定
+        function updateTextColorAuto() {
+            if(document.body.classList.contains('theme-2')) {
+                displayArea.style.color = '#ffd900';
+            } else if(document.body.classList.contains('theme-3')) {
+                displayArea.style.color = '#222';
+            } else {
+                displayArea.style.color = '#222';
+            }
+        }
+
+        // OpenType機能の反映
+        function updateOpenTypeFeatures() {
+            // 入力値をそのまま反映（カンマ区切りで複数指定可）
+            let feat = activeOpenTypeFeatures.split(',').map(f=>f.trim()).filter(f=>f).map(f=>/^'.*'$/.test(f)?f:`'${f}' 1`).join(',');
+            displayArea.style.fontFeatureSettings = feat;
+            displayArea.style.webkitFontFeatureSettings = feat;
+        }
+    };
+    </script>
+</body>
+</html>
