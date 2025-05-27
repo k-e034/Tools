@@ -548,10 +548,8 @@
 
         // 表示エリアの更新
         function updateDisplayArea() {
-            // 書字方向の変更時はフォーカスを外す
-            if (document.activeElement === displayArea) {
-                displayArea.blur();
-            }
+            // 通常のテキスト編集時はblur()しない
+            // （書字方向変更時のみblur()する処理は縦書きボタンの方で行う）
             
             // キャレット位置保存
             let sel = window.getSelection();
@@ -571,32 +569,16 @@
             if (!html) html = '';
             displayArea.innerHTML = html;
             
-            // 書字方向の変更時以外はキャレット位置復元
-            if (document.activeElement !== displayArea) {
-                // 書字方向
-                if (isVerticalWriting) {
-                    displayArea.classList.add('vertical-rl');
-                } else {
-                    displayArea.classList.remove('vertical-rl');
-                }
+            // 書字方向設定
+            if (isVerticalWriting) {
+                displayArea.classList.add('vertical-rl');
             } else {
-                // 書字方向
-                if (isVerticalWriting) {
-                    displayArea.classList.add('vertical-rl');
-                } else {
-                    displayArea.classList.remove('vertical-rl');
-                }
-                // キャレット位置復元
-                setCaretByOffset(displayArea, caretOffset);
+                displayArea.classList.remove('vertical-rl');
             }
             
-            // 縦書き時の追加処理：強制的に再描画
-            if (isVerticalWriting) {
-                setTimeout(() => {
-                    displayArea.style.transform = 'translateZ(0)'; // 3D変換を強制
-                    displayArea.offsetHeight; // 強制的にレイアウト再計算
-                    displayArea.style.transform = '';
-                }, 10);
+            // キャレット位置復元（編集中の場合のみ）
+            if (document.activeElement === displayArea) {
+                setCaretByOffset(displayArea, caretOffset);
             }
             
             updateTextColorAuto();
@@ -733,24 +715,24 @@
                 displayArea.blur();
                 displayArea.innerText = `${title}\n\n${extract}`;
                 
-                // 縦書き時は強制的に再描画とレイアウト更新
+                // 縦書き時は特別な処理
                 if (isVerticalWriting) {
-                    // 一時的に横書きにしてから縦書きに戻す
+                    // 縦書きクラスを一旦削除してから再適用
                     displayArea.classList.remove('vertical-rl');
-                    
-                    // 強制的にレイアウトを再計算
-                    displayArea.offsetHeight;
+                    displayArea.offsetHeight; // 強制的にレイアウトを再計算
                     
                     setTimeout(() => {
                         displayArea.classList.add('vertical-rl');
-                        updateDisplayArea();
+                        // ルビ変換処理
+                        let raw = displayArea.innerText || '';
+                        let html = raw ? aozoraToRubyHTML(raw) : '';
+                        html = html.replace(/\n/g, '<br>');
+                        displayArea.innerHTML = html;
                         
-                        // さらに追加の更新処理
-                        setTimeout(() => {
-                            displayArea.style.display = 'none';
-                            displayArea.offsetHeight; // 強制再描画
-                            displayArea.style.display = 'block';
-                        }, 50);
+                        // 強制再描画
+                        displayArea.style.display = 'none';
+                        displayArea.offsetHeight;
+                        displayArea.style.display = 'block';
                     }, 50);
                 } else {
                     updateDisplayArea();
