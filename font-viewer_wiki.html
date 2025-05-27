@@ -289,17 +289,7 @@
             filter: drop-shadow(0 0 15px currentColor);
         }
 
-        /* 背景3Dグリッド */
-        #bg3dCanvas {
-            position: fixed;
-            z-index: -1;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            pointer-events: none;
-            background: transparent !important;
-        }
+        /* 背景3Dグリッド - 削除 */
 
         /* ロード状態表示 */
         .loading-message {
@@ -395,8 +385,7 @@
 </head>
 <body class="font-viewer theme-1">
 
-    <!-- 背景3Dグリッド -->
-    <div id="bg3dCanvas" class="bg-3d-canvas"></div>
+    <!-- 背景3Dグリッド - 削除 -->
 
     <!-- メイン表示エリア（直接編集可） -->
     <div id="displayArea" contenteditable="true" spellcheck="false">ここにテキストを入力してください</div>
@@ -436,8 +425,7 @@
         <div id="wikiLoadingMsg" class="loading-message">読み込み中...</div>
     </div>
 
-    <!-- Three.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/build/three.min.js"></script>
+    <!-- Three.js CDN - 削除 -->
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -467,13 +455,9 @@
 
         const FONT_FAMILY_NAME = 'UserCustomFont';
 
-        // 背景3Dグリッド関連
-        let bgWaveRenderer, bgWaveScene, bgWaveCamera, bgWaveMesh, bgWaveAnimId;
-
         // 初期化
         function initializeApp() {
             setupEventListeners();
-            initBgWaveGrid();
             updateDisplayArea();
         }
 
@@ -490,7 +474,6 @@
                 let next = (now + 1) % themes.length;
                 document.body.classList.remove(...themes);
                 document.body.classList.add(themes[next]);
-                setBgWaveTheme(themes[next]);
                 updateTextColorAuto();
             });
             
@@ -549,9 +532,6 @@
                     updateDisplayArea();
                 }
             });
-            
-            // リサイズ対応
-            window.addEventListener('resize', resizeBgWave);
         }
 
         // パネルの表示切替
@@ -608,6 +588,15 @@
                 }
                 // キャレット位置復元
                 setCaretByOffset(displayArea, caretOffset);
+            }
+            
+            // 縦書き時の追加処理：強制的に再描画
+            if (isVerticalWriting) {
+                setTimeout(() => {
+                    displayArea.style.transform = 'translateZ(0)'; // 3D変換を強制
+                    displayArea.offsetHeight; // 強制的にレイアウト再計算
+                    displayArea.style.transform = '';
+                }, 10);
             }
             
             updateTextColorAuto();
@@ -740,8 +729,33 @@
                 const title = data.title || '無題';
                 const extract = data.extract || data.content || data.text || 'コンテンツが見つかりませんでした';
                 
+                // フォーカスを外してからテキストを設定
+                displayArea.blur();
                 displayArea.innerText = `${title}\n\n${extract}`;
-                updateDisplayArea();
+                
+                // 縦書き時は強制的に再描画とレイアウト更新
+                if (isVerticalWriting) {
+                    // 一時的に横書きにしてから縦書きに戻す
+                    displayArea.classList.remove('vertical-rl');
+                    
+                    // 強制的にレイアウトを再計算
+                    displayArea.offsetHeight;
+                    
+                    setTimeout(() => {
+                        displayArea.classList.add('vertical-rl');
+                        updateDisplayArea();
+                        
+                        // さらに追加の更新処理
+                        setTimeout(() => {
+                            displayArea.style.display = 'none';
+                            displayArea.offsetHeight; // 強制再描画
+                            displayArea.style.display = 'block';
+                        }, 50);
+                    }, 50);
+                } else {
+                    updateDisplayArea();
+                }
+                
                 wikiPanel.style.display = 'none';
                 
             } catch (e) {
@@ -757,97 +771,6 @@
                 alert(errorMsg);
             } finally {
                 wikiLoadingMsg.style.display = 'none';
-            }
-        }
-
-        // 背景3Dグリッドの初期化
-        function initBgWaveGrid() {
-            const bg3dDiv = document.getElementById('bg3dCanvas');
-            
-            // 既存レンダラーの破棄
-            if (bgWaveRenderer && bgWaveRenderer.domElement.parentNode) {
-                bgWaveRenderer.domElement.parentNode.removeChild(bgWaveRenderer.domElement);
-            }
-            
-            bgWaveRenderer = new THREE.WebGLRenderer({alpha: true, antialias: true});
-            bgWaveRenderer.setClearColor(0x000000, 0);
-            bgWaveRenderer.setSize(window.innerWidth, window.innerHeight);
-            bg3dDiv.appendChild(bgWaveRenderer.domElement);
-            
-            bgWaveScene = new THREE.Scene();
-            
-            // グリッドサイズ
-            const pxPerUnit = 10;
-            const gridW = window.innerWidth / pxPerUnit;
-            const gridH = window.innerHeight / pxPerUnit;
-            const segW = 80, segH = 40;
-            
-            // カメラ設定
-            const left = -gridW/2, right = gridW/2, top = gridH/2, bottom = -gridH/2;
-            bgWaveCamera = new THREE.OrthographicCamera(left, right, top, bottom, 1, 1000);
-            bgWaveCamera.position.set(0, 180, 180);
-            bgWaveCamera.lookAt(0, 0, 0);
-            
-            // 波動グリッド生成
-            const geometry = new THREE.PlaneGeometry(gridW, gridH, segW, segH);
-            const material = new THREE.MeshPhongMaterial({
-                color: 0x00ffe7,
-                emissive: 0x003366,
-                shininess: 80,
-                side: THREE.DoubleSide,
-                wireframe: true,
-                transparent: true,
-                opacity: 0.7
-            });
-            bgWaveMesh = new THREE.Mesh(geometry, material);
-            bgWaveMesh.rotation.x = -Math.PI/2.1;
-            bgWaveScene.add(bgWaveMesh);
-            
-            // ライト
-            bgWaveScene.add(new THREE.AmbientLight(0xffffff, 0.7));
-            let dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
-            dirLight.position.set(0, 1, 2);
-            bgWaveScene.add(dirLight);
-            
-            // アニメーション開始
-            if (bgWaveAnimId) cancelAnimationFrame(bgWaveAnimId);
-            animateBgWave();
-        }
-
-        // 背景波動アニメーション
-        function animateBgWave() {
-            if (!bgWaveMesh || !bgWaveRenderer) return;
-            
-            let t = performance.now() / 1000;
-            let pos = bgWaveMesh.geometry.attributes.position;
-            
-            for (let i = 0; i < pos.count; i++) {
-                let ix = i % 81, iy = Math.floor(i / 81); // segW+1 = 81
-                pos.setZ(i, Math.sin(t * 1.2 + ix * 0.3 + iy * 0.5) * 2.2 + Math.cos(t * 0.7 + ix * 0.5 - iy * 0.2) * 1.2);
-            }
-            pos.needsUpdate = true;
-            bgWaveRenderer.render(bgWaveScene, bgWaveCamera);
-            bgWaveAnimId = requestAnimationFrame(animateBgWave);
-        }
-
-        // 背景リサイズ対応
-        function resizeBgWave() {
-            if (bgWaveRenderer) {
-                bgWaveRenderer.setSize(window.innerWidth, window.innerHeight);
-            }
-            initBgWaveGrid();
-        }
-
-        // テーマ切り替え時の背景色変更
-        function setBgWaveTheme(theme) {
-            if (bgWaveMesh) {
-                if (theme === 'theme-2') {
-                    bgWaveMesh.material.color.set('#444444');
-                } else if (theme === 'theme-3') {
-                    bgWaveMesh.material.color.set('#2e8b57');
-                } else {
-                    bgWaveMesh.material.color.set(0x00ffe7);
-                }
             }
         }
 
