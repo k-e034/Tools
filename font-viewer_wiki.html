@@ -110,14 +110,15 @@
             font-size: 0.7em;
         }
 
-        /* 縦書き対応 */
+        /* 縦書き対応 - 修正版 */
         #displayArea.vertical-rl {
             writing-mode: vertical-rl;
             -webkit-writing-mode: vertical-rl;
             -ms-writing-mode: tb-rl;
             text-orientation: mixed;
             width: 40vw;
-            height: 100vh;
+            height: 90vh;
+            padding: 2vw 4vw;
         }
 
         /* ルビスタイル */
@@ -316,18 +317,28 @@
             text-align: center;
         }
 
-        /* レスポンシブ対応 */
+        /* レスポンシブ対応 - 修正版 */
         @media (max-width: 600px) {
             #displayArea {
                 width: 98vw;
                 font-size: 20px;
                 padding: 2vw;
+                max-height: 95vh;
             }
             
+            /* スマートフォン縦書き対応を修正 */
             #displayArea.vertical-rl {
-                width: 70vw;
-                height: 98vh;
-                font-size: 20px;
+                width: 95vw;
+                height: 85vh;
+                font-size: 18px;
+                padding: 2vw;
+                max-height: 85vh;
+                overflow-y: auto;
+                overflow-x: auto;
+                /* 上にはみ出るのを防ぐ */
+                top: 45%;
+                left: 50%;
+                transform: translate(-50%, -50%);
             }
             
             #floatingBtns {
@@ -349,6 +360,19 @@
                 padding: 8px 8px;
                 font-size: 0.95em;
                 width: 280px;
+                max-height: 60vh;
+            }
+        }
+
+        /* さらに小さい画面での調整 */
+        @media (max-width: 400px) {
+            #displayArea.vertical-rl {
+                width: 98vw;
+                height: 80vh;
+                font-size: 16px;
+                padding: 1vw;
+                max-height: 80vh;
+                top: 42%;
             }
         }
 
