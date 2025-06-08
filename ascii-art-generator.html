@@ -70,6 +70,7 @@ const colorizeControl = document.getElementById('colorize');
 const saveImageBtn = document.getElementById('saveImage');
 const savePDFBtn = document.getElementById('savePDF');
 const asciiChars = Array.from({ length: 95 }, (_, i) => String.fromCharCode(i + 32)).reverse();
+const MAX_CHARS = 300;
 let originalImage = null;
 let lastAsciiGrid = [];
 let lastColorGrid = [];
@@ -96,7 +97,11 @@ fontSizeControl.oninput = function() {
 brightnessControl.oninput = generateAscii;
 edgeDetectionControl.onchange = generateAscii;
 colorizeControl.onchange = generateAscii;
-window.addEventListener('resize', generateAscii);
+let resizeTimeout;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(generateAscii, 200);
+});
 
 function adjustAsciiWidth(widthPx, fontSize) {
     asciiDiv.style.fontSize = fontSize + 'px';
@@ -125,12 +130,21 @@ function generateAscii() {
     const screenWidth = window.innerWidth - 40;
     const fontSize = parseFloat(fontSizeControl.value);
     lastFontSize = fontSize;
+
     const charWidth = fontSize * 0.6;
-    const maxChars = Math.floor(screenWidth / charWidth);
+    const charHeight = fontSize;
+
+    const maxChars = Math.min(Math.floor(screenWidth / charWidth), MAX_CHARS);
     const scale = maxChars / originalImage.width;
     canvas.width = maxChars;
-    canvas.height = Math.floor(originalImage.height * scale);
-    ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
+    const aspectScale = 2 * charWidth / charHeight;
+    canvas.height = Math.floor(originalImage.height * scale * aspectScale);
+    try {
+        ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
+    } catch (e) {
+        console.error('drawImage failed', e);
+        return;
+    }
     if (edgeDetectionControl.checked) {
         const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         applyEdgeDetection(imgData);
