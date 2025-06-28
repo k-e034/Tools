@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ASCII Art Generator (WebGPU)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+body { background: #000; color: #fff; font-family: monospace; text-align: center; }
+#ascii {
+    display: inline-block;
+    white-space: pre;
+    line-height: 1em;
+    margin: 0 auto;
+    text-align: left;
+    font-family: monospace;
+    font-size: 10px;
+    letter-spacing: 0;
+    background: #000;
+}
+#ascii div {
+    white-space: nowrap;
+    display: flex;
+}
+input[type=range] { width: 300px; }
+.control-group { margin: 15px 0; }
+button { font-size: 1em; padding: 4px 16px; }
+#webgpuCanvas { display: none; }
+#error { color: red; margin: 10px 0; }
+</style>
+</head>
+<body>
+<h1>ASCII Art Generator (WebGPU)</h1>
+<div id="error"></div>
+<div class="control-group"><input type="file" id="fileInput"></div>
+<div class="control-group">
+    文字サイズ（px）:
+    <input type="range" id="fontSize" min="0.5" max="16" step="0.1" value="8.0">
+    <span id="fontSizeValue">8.0</span> px
+</div>
+<div class="control-group">
+    明るさ調整：
+    <input type="range" id="brightness" min="0" max="2" step="0.1" value="1">
+</div>
+<div class="control-group">
+    <label><input type="checkbox" id="edgeDetection"> エッジ検出を有効化</label>
+    <label><input type="checkbox" id="colorize"> カラライズを有効化</label>
+</div>
+<div class="control-group">
+    PNG解像度：
+    <select id="pngResolution">
+        <option value="1">小</option>
+        <option value="2">中</option>
+        <option value="3">大</option>
+        <option value="4">最大</option>
+    </select>
+</div>
+<div class="control-group">
+    <button id="saveImage">PNG画像として保存</button>
+    <button id="savePDF">PDFとして保存</button>
+</div>
+<canvas id="webgpuCanvas"></canvas>
+<canvas id="canvas" style="display:none;"></canvas>
+<div id="ascii"></div>
+
+<script>
+class WebGPUASCIIGenerator {
+    constructor() {
+        this.device = null;
+        this.context = null;
+        this.pipeline = null;
+        this.bindGroupLayout = null;
+        this.uniformBuffer = null;
+        this.textureBuffer = null;
+        this.outputBuffer = null;
+        this.initialized = false;
+        this.asciiChars = Array.from({ length: 95 }, (_, i) => String.fromCharCode(i + 32)).reverse();
+    }
+
+    async init() {
+        try {
+            if (!navigator.gpu) {
+                throw new Error('WebGPU is not supported in this browser');
+            }
+
+            const adapter = await navigator.gpu.requestAdapter();
+            if (!adapter) {
+                throw new Error('No appropriate GPUAdapter found');
+            }
+
+            this.device = await adapter.requestDevice();
+            
+            const canvas = document.getElementById('webgpuCanvas');
+            this.context = canvas.getContext('webgpu');
+            
+            const canvasFormat = navigator.gpu.getPreferredCanvasFormat();
+            this.context.configure({
+                device: this.device,
+                format: canvasFormat,
+            });
+
+            await this.createShaders();
+            this.initialized = true;
+            return true;
+        } catch (error) {
+            console.error('WebGPU initialization failed:', error);
+            document.getElementById('error').textContent = 'WebGPU初期化エラー: ' + error.message;
+            return false;
+        }
+    }
+
+    async createShaders() {
+        // 画像処理用のコンピュートシェーダー
+        const computeShaderCode = `
+            struct Uniforms {
+                width: u32,
+                height: u32,
+                brightness: f32,
+                edgeDetection: u32,
+            }
+
+            @group(0) @binding(0) var<uniform> uniforms: Uniforms;
+            @group(0) @binding(1) var inputTexture: texture_2d<f32>;
+            @group(0) @binding(2) var<storage, read_write> outputBuffer: array<vec4<f32>>;
+
+            @compute @workgroup_size(8, 8)
+            fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+                let x = global_id.x;
+                let y = global_id.y;
+                
+                if (x >= uniforms.width || y >= uniforms.height) {
+                    return;
+                }
+
+                let index = y * uniforms.width + x;
+                let pixel = textureLoad(inputTexture, vec2<i32>(i32(x), i32(y)), 0);
+                
+                var result = pixel;
+                
+                // エッジ検出
+                if (uniforms.edgeDetection == 1u && x > 0u && y > 0u && x < uniforms.width - 1u && y < uniforms.height - 1u) {
+                    let tl = textureLoad(inputTexture, vec2<i32>(i32(x-1u), i32(y-1u)), 0);
+                    let tm = textureLoad(inputTexture, vec2<i32>(i32(x), i32(y-1u)), 0);
+                    let tr = textureLoad(inputTexture, vec2<i32>(i32(x+1u), i32(y-1u)), 0);
+                    let ml = textureLoad(inputTexture, vec2<i32>(i32(x-1u), i32(y)), 0);
+                    let mr = textureLoad(inputTexture, vec2<i32>(i32(x+1u), i32(y)), 0);
+                    let bl = textureLoad(inputTexture, vec2<i32>(i32(x-1u), i32(y+1u)), 0);
+                    let bm = textureLoad(inputTexture, vec2<i32>(i32(x), i32(y+1u)), 0);
+                    let br = textureLoad(inputTexture, vec2<i32>(i32(x+1u), i32(y+1u)), 0);
+                    
+                    let gx = -tl.r + tr.r - 2.0 * ml.r + 2.0 * mr.r - bl.r + br.r;
+                    let gy = -tl.r - 2.0 * tm.r - tr.r + bl.r + 2.0 * bm.r + br.r;
+                    let edge = sqrt(gx * gx + gy * gy);
+                    
+                    result = vec4<f32>(edge, edge, edge, 1.0);
+                }
+                
+                // 明るさ調整
+                result = vec4<f32>(result.rgb * uniforms.brightness, result.a);
+                
+                outputBuffer[index] = result;
+            }
+        `;
+
+        this.computeShader = this.device.createShaderModule({
+            code: computeShaderCode
+        });
+
+        // バインドグループレイアウトの作成
+        this.bindGroupLayout = this.device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: 'uniform' }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.COMPUTE,
+                    texture: { sampleType: 'float' }
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: 'storage' }
+                }
+            ]
+        });
+
+        // コンピュートパイプラインの作成
+        this.computePipeline = this.device.createComputePipeline({
+            layout: this.device.createPipelineLayout({
+                bindGroupLayouts: [this.bindGroupLayout]
+            }),
+            compute: {
+                module: this.computeShader,
+                entryPoint: 'main'
+            }
+        });
+    }
+
+    async processImage(imageData, width, height, brightness, edgeDetection) {
+        if (!this.initialized) {
+            throw new Error('WebGPU not initialized');
+        }
+
+        // テクスチャの作成
+        const texture = this.device.createTexture({
+            size: [width, height, 1],
+            format: 'rgba8unorm',
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+        });
+
+        // 画像データをテクスチャにコピー
+        this.device.queue.writeTexture(
+            { texture },
+            imageData,
+            { bytesPerRow: width * 4 },
+            [width, height, 1]
+        );
+
+        // ユニフォームバッファの作成
+        const uniformData = new ArrayBuffer(16);
+        const uniformView = new DataView(uniformData);
+        uniformView.setUint32(0, width, true);
+        uniformView.setUint32(4, height, true);
+        uniformView.setFloat32(8, brightness, true);
+        uniformView.setUint32(12, edgeDetection ? 1 : 0, true);
+
+        const uniformBuffer = this.device.createBuffer({
+            size: 16,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        });
+
+        this.device.queue.writeBuffer(uniformBuffer, 0, uniformData);
+
+        // 出力バッファの作成
+        const outputBuffer = this.device.createBuffer({
+            size: width * height * 16, // vec4<f32> = 16 bytes
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
+        });
+
+        // 読み取り用バッファの作成
+        const readBuffer = this.device.createBuffer({
+            size: width * height * 16,
+            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+        });
+
+        // バインドグループの作成
+        const bindGroup = this.device.createBindGroup({
+            layout: this.bindGroupLayout,
+            entries: [
+                { binding: 0, resource: { buffer: uniformBuffer } },
+                { binding: 1, resource: texture.createView() },
+                { binding: 2, resource: { buffer: outputBuffer } }
+            ]
+        });
+
+        // コマンドエンコーダーの作成と実行
+        const commandEncoder = this.device.createCommandEncoder();
+        const passEncoder = commandEncoder.beginComputePass();
+        passEncoder.setPipeline(this.computePipeline);
+        passEncoder.setBindGroup(0, bindGroup);
+        passEncoder.dispatchWorkgroups(Math.ceil(width / 8), Math.ceil(height / 8));
+        passEncoder.end();
+
+        commandEncoder.copyBufferToBuffer(outputBuffer, 0, readBuffer, 0, width * height * 16);
+        this.device.queue.submit([commandEncoder.finish()]);
+
+        // 結果の読み取り
+        await readBuffer.mapAsync(GPUMapMode.READ);
+        const resultData = new Float32Array(readBuffer.getMappedRange());
+        const result = new Float32Array(resultData);
+        readBuffer.unmap();
+
+        // リソースのクリーンアップ
+        texture.destroy();
+        uniformBuffer.destroy();
+        outputBuffer.destroy();
+        readBuffer.destroy();
+
+        return result;
+    }
+
+    pixelDataToASCII(pixelData, width, height, colorize) {
+        let asciiGrid = [];
+        let colorGrid = [];
+        
+        for (let y = 0; y < height; y += 2) {
+            let asciiRow = [];
+            let colorRow = [];
+            
+            for (let x = 0; x < width; x++) {
+                const index = (y * width + x) * 4;
+                const r = Math.floor(pixelData[index] * 255);
+                const g = Math.floor(pixelData[index + 1] * 255);
+                const b = Math.floor(pixelData[index + 2] * 255);
+                
+                const avg = (r + g + b) / 3;
+                const charIndex = Math.floor((avg / 255) * (this.asciiChars.length - 1));
+                const char = this.asciiChars[Math.min(Math.max(charIndex, 0), this.asciiChars.length - 1)];
+                
+                asciiRow.push(char);
+                colorRow.push([r, g, b]);
+            }
+            
+            asciiGrid.push(asciiRow);
+            colorGrid.push(colorRow);
+        }
+        
+        return { asciiGrid, colorGrid };
+    }
+}
+
+// グローバル変数
+const fileInput = document.getElementById('fileInput');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const asciiDiv = document.getElementById('ascii');
+const fontSizeControl = document.getElementById('fontSize');
+const fontSizeValue = document.getElementById('fontSizeValue');
+const brightnessControl = document.getElementById('brightness');
+const edgeDetectionControl = document.getElementById('edgeDetection');
+const colorizeControl = document.getElementById('colorize');
+const saveImageBtn = document.getElementById('saveImage');
+const savePDFBtn = document.getElementById('savePDF');
+
+let webgpuGenerator = new WebGPUASCIIGenerator();
+let originalImage = null;
+let lastAsciiGrid = [];
+let lastColorGrid = [];
+let lastFontSize = 8.0;
+let useWebGPU = false;
+
+// WebGPUの初期化
+async function initWebGPU() {
+    const success = await webgpuGenerator.init();
+    if (success) {
+        useWebGPU = true;
+        console.log('WebGPU initialized successfully');
+    } else {
+        console.log('Falling back to Canvas 2D API');
+        useWebGPU = false;
+    }
+}
+
+// 初期化
+initWebGPU();
+
+// イベントリスナー
+fileInput.onchange = function(e) {
+    const file = fileInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const img = new Image();
+        img.onload = function() {
+            originalImage = img;
+            generateAscii();
+        };
+        img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+};
+
+fontSizeControl.oninput = function() {
+    fontSizeValue.textContent = parseFloat(fontSizeControl.value).toFixed(1);
+    generateAscii();
+};
+
+brightnessControl.oninput = generateAscii;
+edgeDetectionControl.onchange = generateAscii;
+colorizeControl.onchange = generateAscii;
+window.addEventListener('resize', generateAscii);
+
+function adjustAsciiWidth(widthPx, fontSize) {
+    asciiDiv.style.fontSize = fontSize + 'px';
+    asciiDiv.style.width = widthPx + 'px';
+    asciiDiv.style.maxWidth = widthPx + 'px';
+}
+
+// Canvas 2D APIでのエッジ検出（フォールバック用）
+function applyEdgeDetection(imageData) {
+    const width = imageData.width, height = imageData.height, data = imageData.data;
+    const originalData = new Uint8ClampedArray(data);
+    for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+            const idx = (y * width + x) * 4;
+            const get = (xx, yy) => {
+                const i = (yy * width + xx) * 4;
+                return (originalData[i] + originalData[i+1] + originalData[i+2]) / 3;
+            };
+            const gx = get(x-1,y-1)*-1 + get(x+1,y-1)*1 + get(x-1,y)*-2 + get(x+1,y)*2 + get(x-1,y+1)*-1 + get(x+1,y+1)*1;
+            const gy = get(x-1,y-1)*-1 + get(x,y-1)*-2 + get(x+1,y-1)*-1 + get(x-1,y+1)*1 + get(x,y+1)*2 + get(x+1,y+1)*1;
+            const edge = Math.sqrt(gx*gx + gy*gy), v = Math.min(255, edge);
+            data[idx] = data[idx+1] = data[idx+2] = v;
+        }
+    }
+}
+
+async function generateAscii() {
+    if (!originalImage) return;
+    
+    const screenWidth = window.innerWidth - 40;
+    const fontSize = parseFloat(fontSizeControl.value);
+    lastFontSize = fontSize;
+    const charWidth = fontSize * 0.6;
+    const maxChars = Math.floor(screenWidth / charWidth);
+    const scale = maxChars / originalImage.width;
+    
+    canvas.width = maxChars;
+    canvas.height = Math.floor(originalImage.height * scale);
+    ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
+    
+    const brightness = parseFloat(brightnessControl.value);
+    const edgeDetection = edgeDetectionControl.checked;
+    const colorize = colorizeControl.checked;
+    
+    let processedData;
+    
+    if (useWebGPU) {
+        try {
+            // WebGPUで画像処理
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            processedData = await webgpuGenerator.processImage(
+                imgData.data, 
+                canvas.width, 
+                canvas.height, 
+                brightness, 
+                edgeDetection
+            );
+        } catch (error) {
+            console.error('WebGPU processing failed, falling back to Canvas 2D:', error);
+            useWebGPU = false;
+        }
+    }
+    
+    if (!useWebGPU) {
+        // Canvas 2D APIでの処理（フォールバック）
+        if (edgeDetection) {
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            applyEdgeDetection(imgData);
+            ctx.putImageData(imgData, 0, 0);
+        }
+        
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        processedData = new Float32Array(imgData.data.length);
+        for (let i = 0; i < imgData.data.length; i += 4) {
+            const r = (imgData.data[i] / 255) * brightness;
+            const g = (imgData.data[i + 1] / 255) * brightness;
+            const b = (imgData.data[i + 2] / 255) * brightness;
+            const a = imgData.data[i + 3] / 255;
+            
+            processedData[i] = Math.min(1, r);
+            processedData[i + 1] = Math.min(1, g);
+            processedData[i + 2] = Math.min(1, b);
+            processedData[i + 3] = a;
+        }
+    }
+    
+    // ASCII変換
+    const { asciiGrid, colorGrid } = webgpuGenerator.pixelDataToASCII(
+        processedData, 
+        canvas.width, 
+        canvas.height, 
+        colorize
+    );
+    
+    lastAsciiGrid = asciiGrid;
+    lastColorGrid = colorGrid;
+    
+    // 表示
+    let asciiText = '';
+    let asciiHtml = '';
+    
+    for (let y = 0; y < asciiGrid.length; y++) {
+        if (colorize) asciiHtml += '<div style="display:flex;">';
+        
+        for (let x = 0; x < asciiGrid[y].length; x++) {
+            const char = asciiGrid[y][x];
+            asciiText += char;
+            
+            if (colorize) {
+                const [r, g, b] = colorGrid[y][x];
+                asciiHtml += `<span style="display:inline-block;width:1em;color:rgb(${r},${g},${b})">${char === ' ' ? '&nbsp;' : char}</span>`;
+            } else {
+                asciiHtml += char;
+            }
+        }
+        
+        asciiText += '\n';
+        if (colorize) {
+            asciiHtml += '</div>';
+        } else {
+            asciiHtml += '\n';
+        }
+    }
+    
+    const containerWidth = Math.floor(maxChars * charWidth);
+    adjustAsciiWidth(containerWidth, fontSize);
+    
+    if (colorize) {
+        asciiDiv.innerHTML = asciiHtml;
+    } else {
+        asciiDiv.textContent = asciiText;
+    }
+}
+
+// 保存機能（既存のコードを維持）
+const pngResolutionSelect = document.getElementById('pngResolution');
+
+saveImageBtn.onclick = function() {
+    if (!lastAsciiGrid.length) return;
+    const fontSize = lastFontSize;
+    const charWidth = fontSize * 0.6;
+    const charHeight = fontSize;
+
+    const scaleMap = { 1: 1, 2: 2, 3: 3, 4: 4 };
+    const scale = scaleMap[pngResolutionSelect.value] || 1;
+
+    const width = Math.floor(lastAsciiGrid[0].length * charWidth * scale);
+    const height = Math.floor(lastAsciiGrid.length * charHeight * scale);
+    const tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width = width;
+    tmpCanvas.height = height;
+    const tmpCtx = tmpCanvas.getContext('2d');
+    tmpCtx.fillStyle = "#000";
+    tmpCtx.fillRect(0, 0, width, height);
+    tmpCtx.font = `bold ${fontSize * scale}px monospace`;
+    tmpCtx.textBaseline = "top";
+    
+    for (let y = 0; y < lastAsciiGrid.length; y++) {
+        for (let x = 0; x < lastAsciiGrid[0].length; x++) {
+            const char = lastAsciiGrid[y][x];
+            if (colorizeControl.checked) {
+                const [r, g, b] = lastColorGrid[y][x];
+                tmpCtx.fillStyle = `rgb(${r},${g},${b})`;
+            } else {
+                tmpCtx.fillStyle = "#fff";
+            }
+            tmpCtx.fillText(
+                char,
+                x * charWidth * scale,
+                y * charHeight * scale
+            );
+        }
+    }
+    
+    const url = tmpCanvas.toDataURL("image/png");
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ascii_art_webgpu.png';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+};
+
+savePDFBtn.onclick = function() {
+    if (!lastAsciiGrid.length) return;
+    const fontSize = lastFontSize;
+    const px2pt = 0.75;
+    const charWidth = fontSize * 0.6;
+    const charHeight = fontSize;
+    const cols = lastAsciiGrid[0].length, rows = lastAsciiGrid.length;
+    const pdfWidth = cols * charWidth * px2pt;
+    const pdfHeight = rows * charHeight * px2pt;
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({
+        orientation: (pdfWidth > pdfHeight) ? "l" : "p",
+        unit: "pt",
+        format: [pdfWidth, pdfHeight]
+    });
+    pdf.setFillColor(0, 0, 0);
+    pdf.rect(0, 0, pdfWidth, pdfHeight, "F");
+    pdf.setFont("Courier", "bold");
+    pdf.setFontSize(fontSize * px2pt);
+    
+    for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+            const char = lastAsciiGrid[y][x];
+            if (colorizeControl.checked) {
+                const [r, g, b] = lastColorGrid[y][x];
+                pdf.setTextColor(r, g, b);
+            } else {
+                pdf.setTextColor(255, 255, 255);
+            }
+            pdf.text(
+                char,
+                x * charWidth * px2pt,
+                y * charHeight * px2pt + (fontSize * px2pt),
+                { baseline: 'bottom' }
+            );
+        }
+    }
+    pdf.save('ascii_art_webgpu.pdf');
+};
+</script>
+</body>
+</html>
+
