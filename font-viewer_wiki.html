@@ -15,7 +15,6 @@
     :root {
         --font-size-base: clamp(24px, 5vw, 48px);
         --font-size-mobile: clamp(18px, 4vw, 32px);
-        --font-size-current: var(--font-size-base);
         --spacing-unit: 1rem;
         --border-radius: 16px;
         --transition-base: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -86,7 +85,7 @@
         border-radius: var(--border-radius);
         backdrop-filter: var(--backdrop-blur);
         box-shadow: var(--shadow-strong);
-        font-size: var(--font-size-current);
+        font-size: var(--font-size-base);
         line-height: 1.6;
         outline: none;
         overflow: auto;
@@ -214,36 +213,6 @@
             opacity: 0;
             transform: translateX(-50%) translateY(1rem);
         }
-
-        // 文字サイズ調整機能
-        handleFontSizeChange() {
-            if (!this.elements.fontSizeSlider) return;
-            this.currentFontSize = parseInt(this.elements.fontSizeSlider.value);
-            this.updateFontSize();
-        }
-
-        adjustFontSize(delta) {
-            this.currentFontSize = Math.max(12, Math.min(120, this.currentFontSize + delta));
-            if (this.elements.fontSizeSlider) {
-                this.elements.fontSizeSlider.value = this.currentFontSize;
-            }
-            this.updateFontSize();
-        }
-
-        resetFontSize() {
-            this.currentFontSize = 40;
-            if (this.elements.fontSizeSlider) {
-                this.elements.fontSizeSlider.value = this.currentFontSize;
-            }
-            this.updateFontSize();
-        }
-
-        updateFontSize() {
-            document.documentElement.style.setProperty('--font-size-current', `${this.currentFontSize}px`);
-            if (this.elements.fontSizeDisplay) {
-                this.elements.fontSizeDisplay.textContent = `${this.currentFontSize}px`;
-            }
-        }
         to {
             opacity: 1;
             transform: translateX(-50%) translateY(0);
@@ -358,6 +327,41 @@
         border-color: var(--accent-primary);
     }
 
+    /* 文字サイズ調整パネル */
+    .font-size-controls {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .font-size-controls button {
+        width: 40px;
+        height: 40px;
+        border: none;
+        border-radius: 8px;
+        background: var(--accent-primary);
+        color: white;
+        cursor: pointer;
+        font-size: 1.2rem;
+        transition: var(--transition-base);
+    }
+
+    .font-size-controls button:hover {
+        background: var(--accent-secondary);
+    }
+
+    .font-size-controls input[type="range"] {
+        flex: 1;
+        accent-color: var(--accent-primary);
+    }
+
+    .font-size-display {
+        text-align: center;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
     /* 3Dエフェクト */
     .effect-3d-basic {
         text-shadow: 
@@ -420,13 +424,10 @@
 
     /* レスポンシブ対応 */
     @media (max-width: 768px) {
-        :root {
-            --font-size-current: var(--font-size-mobile);
-        }
-
         #displayArea {
             width: 95vw;
             padding: 1.5rem;
+            font-size: var(--font-size-mobile);
             max-height: 75vh;
         }
 
@@ -521,13 +522,12 @@
 <div id="fontSizePanel" class="control-panel" role="dialog" aria-labelledby="fontsize-header">
     <div class="panel-header" id="fontsize-header">文字サイズ</div>
     <div class="form-group">
-        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
-            <button id="fontSizeDecrease" class="btn-primary" style="width: 40px; padding: 0.5rem;">−</button>
-            <input id="fontSizeSlider" type="range" min="12" max="120" value="40" 
-                   style="flex: 1; accent-color: var(--accent-primary);">
-            <button id="fontSizeIncrease" class="btn-primary" style="width: 40px; padding: 0.5rem;">+</button>
+        <div class="font-size-controls">
+            <button id="fontSizeDecrease">−</button>
+            <input id="fontSizeSlider" type="range" min="12" max="120" value="40">
+            <button id="fontSizeIncrease">+</button>
         </div>
-        <div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
+        <div class="font-size-display">
             <span id="fontSizeDisplay">40px</span>
         </div>
     </div>
@@ -572,419 +572,384 @@
 </div>
 
 <script>
-    class FontViewer {
-        constructor() {
-            this.currentFontObjectURL = null;
-            this.isVerticalWriting = false;
-            this.customFontStyleElement = null;
-            this.activeOpenTypeFeatures = '';
-            this.isComposing = false;
-            this.current3DEffect = 'none';
-            this.currentTheme = 0;
-            this.themes = ['theme-dark', 'theme-warm', 'theme-nature'];
-            this.currentFontSize = 40;
-            this.shouldRestoreCaret = true;
-            
-            this.FONT_FAMILY_NAME = 'UserCustomFont';
-            
-            this.initializeElements();
-            this.setupEventListeners();
-            this.updateDisplayArea();
-            this.updateFontSize(); // 初期フォントサイズを設定
+document.addEventListener('DOMContentLoaded', function() {
+    // DOM要素の取得
+    const fontFileInput = document.getElementById('fontFile');
+    const fontFileBtn = document.getElementById('fontFileBtn');
+    const fontSizeBtn = document.getElementById('fontSizeBtn');
+    const fontSizePanel = document.getElementById('fontSizePanel');
+    const fontSizeSlider = document.getElementById('fontSizeSlider');
+    const fontSizeDisplay = document.getElementById('fontSizeDisplay');
+    const fontSizeIncrease = document.getElementById('fontSizeIncrease');
+    const fontSizeDecrease = document.getElementById('fontSizeDecrease');
+    const fontSizeReset = document.getElementById('fontSizeReset');
+    const themeBtn = document.getElementById('themeBtn');
+    const writingModeBtn = document.getElementById('writingModeBtn');
+    const opentypeBtn = document.getElementById('opentypeBtn');
+    const opentypePanel = document.getElementById('opentypePanel');
+    const opentypeInput = document.getElementById('opentypeInput');
+    const threeDEffectBtn = document.getElementById('threeDEffectBtn');
+    const threeDEffectPanel = document.getElementById('threeDEffectPanel');
+    const wikiBtn = document.getElementById('wikiBtn');
+    const wikiPanel = document.getElementById('wikiPanel');
+    const loadWikipediaBtn = document.getElementById('loadWikipediaBtn');
+    const wikiLoadingMsg = document.getElementById('wikiLoadingMsg');
+    const displayArea = document.getElementById('displayArea');
+
+    // 状態変数
+    let currentFontObjectURL = null;
+    let isVerticalWriting = false;
+    let customFontStyleElement = null;
+    let activeOpenTypeFeatures = '';
+    let isComposing = false;
+    let current3DEffect = 'none';
+    let currentFontSize = 40;
+    let shouldRestoreCaret = true;
+
+    const FONT_FAMILY_NAME = 'UserCustomFont';
+    const themes = ['theme-dark', 'theme-warm', 'theme-nature'];
+    let currentTheme = 0;
+
+    // パネルの表示切替
+    function togglePanel(targetPanel) {
+        const panels = [fontSizePanel, opentypePanel, threeDEffectPanel, wikiPanel];
+        const isCurrentlyOpen = targetPanel.style.display === 'flex';
+        
+        // 全パネルを閉じる
+        panels.forEach(panel => panel.style.display = 'none');
+        
+        // 対象パネルを開く（既に開いていた場合は閉じる）
+        if (!isCurrentlyOpen) {
+            targetPanel.style.display = 'flex';
         }
+    }
 
-        initializeElements() {
-            this.elements = {
-                displayArea: document.getElementById('displayArea'),
-                fontFile: document.getElementById('fontFile'),
-                fontFileBtn: document.getElementById('fontFileBtn'),
-                fontSizeBtn: document.getElementById('fontSizeBtn'),
-                fontSizePanel: document.getElementById('fontSizePanel'),
-                fontSizeSlider: document.getElementById('fontSizeSlider'),
-                fontSizeDisplay: document.getElementById('fontSizeDisplay'),
-                fontSizeIncrease: document.getElementById('fontSizeIncrease'),
-                fontSizeDecrease: document.getElementById('fontSizeDecrease'),
-                fontSizeReset: document.getElementById('fontSizeReset'),
-                themeBtn: document.getElementById('themeBtn'),
-                writingModeBtn: document.getElementById('writingModeBtn'),
-                opentypeBtn: document.getElementById('opentypeBtn'),
-                opentypePanel: document.getElementById('opentypePanel'),
-                opentypeInput: document.getElementById('opentypeInput'),
-                threeDEffectBtn: document.getElementById('threeDEffectBtn'),
-                threeDEffectPanel: document.getElementById('threeDEffectPanel'),
-                wikiBtn: document.getElementById('wikiBtn'),
-                wikiPanel: document.getElementById('wikiPanel'),
-                loadWikipediaBtn: document.getElementById('loadWikipediaBtn'),
-                wikiLoadingMsg: document.getElementById('wikiLoadingMsg')
-            };
-
-            // 要素の存在確認とエラーハンドリング
-            const missingElements = Object.keys(this.elements).filter(key => !this.elements[key]);
-            if (missingElements.length > 0) {
-                console.error('Missing elements:', missingElements);
-            }
+    // 表示エリアの更新
+    function updateDisplayArea() {
+        // キャレット位置保存
+        let sel = window.getSelection();
+        let caretOffset = 0;
+        if (shouldRestoreCaret && sel && sel.rangeCount > 0) {
+            let range = sel.getRangeAt(0);
+            let preCaretRange = range.cloneRange();
+            preCaretRange.selectNodeContents(displayArea);
+            preCaretRange.setEnd(range.endContainer, range.endOffset);
+            caretOffset = preCaretRange.toString().length;
         }
-
-        setupEventListeners() {
-            // ファイル選択
-            if (this.elements.fontFile && this.elements.fontFileBtn) {
-                this.elements.fontFile.addEventListener('change', this.handleFontFileSelection.bind(this));
-                this.elements.fontFileBtn.addEventListener('click', () => this.elements.fontFile.click());
-            }
-
-            // 文字サイズ調整
-            if (this.elements.fontSizeBtn) {
-                this.elements.fontSizeBtn.addEventListener('click', () => this.togglePanel(this.elements.fontSizePanel));
-            }
-            if (this.elements.fontSizeSlider) {
-                this.elements.fontSizeSlider.addEventListener('input', this.handleFontSizeChange.bind(this));
-            }
-            if (this.elements.fontSizeIncrease) {
-                this.elements.fontSizeIncrease.addEventListener('click', () => this.adjustFontSize(4));
-            }
-            if (this.elements.fontSizeDecrease) {
-                this.elements.fontSizeDecrease.addEventListener('click', () => this.adjustFontSize(-4));
-            }
-            if (this.elements.fontSizeReset) {
-                this.elements.fontSizeReset.addEventListener('click', this.resetFontSize.bind(this));
-            }
-
-            // テーマ切り替え
-            if (this.elements.themeBtn) {
-                this.elements.themeBtn.addEventListener('click', this.toggleTheme.bind(this));
-            }
-
-            // 書字方向切り替え
-            if (this.elements.writingModeBtn) {
-                this.elements.writingModeBtn.addEventListener('click', this.toggleWritingMode.bind(this));
-            }
-
-            // OpenType機能
-            if (this.elements.opentypeBtn) {
-                this.elements.opentypeBtn.addEventListener('click', () => this.togglePanel(this.elements.opentypePanel));
-            }
-            if (this.elements.opentypeInput) {
-                this.elements.opentypeInput.addEventListener('input', this.handleOpenTypeInput.bind(this));
-            }
-
-            // 3Dエフェクト
-            if (this.elements.threeDEffectBtn) {
-                this.elements.threeDEffectBtn.addEventListener('click', () => this.togglePanel(this.elements.threeDEffectPanel));
-            }
-            document.querySelectorAll('.effect-btn').forEach(btn => {
-                btn.addEventListener('click', () => this.apply3DEffect(btn.dataset.effect));
-            });
-
-            // Wikipedia
-            if (this.elements.wikiBtn) {
-                this.elements.wikiBtn.addEventListener('click', () => this.togglePanel(this.elements.wikiPanel));
-            }
-            if (this.elements.loadWikipediaBtn) {
-                this.elements.loadWikipediaBtn.addEventListener('click', this.loadWikipediaText.bind(this));
-            }
-
-            // テキスト編集
-            if (this.elements.displayArea) {
-                this.elements.displayArea.addEventListener('compositionstart', () => { this.isComposing = true; });
-                this.elements.displayArea.addEventListener('compositionend', () => {
-                    this.isComposing = false;
-                    this.updateDisplayArea();
-                });
-                this.elements.displayArea.addEventListener('input', () => {
-                    if (!this.isComposing) {
-                        this.updateDisplayArea();
-                    }
-                });
-            }
-
-            // パネル外クリックで閉じる
-            document.addEventListener('click', this.handleOutsideClick.bind(this));
-
-            // キーボードショートカット
-            document.addEventListener('keydown', this.handleKeyboard.bind(this));
+        
+        // ルビ変換
+        let raw = displayArea.innerText || '';
+        let html = raw ? aozoraToRubyHTML(raw) : '';
+        html = html.replace(/\n/g, '<br>');
+        if (!html) html = '';
+        displayArea.innerHTML = html;
+        
+        // キャレット位置復元（書字方向切り替え時はスキップ）
+        if (shouldRestoreCaret && caretOffset > 0) {
+            setCaretByOffset(displayArea, caretOffset);
         }
-
-        toggleTheme() {
-            document.body.classList.remove(...this.themes);
-            this.currentTheme = (this.currentTheme + 1) % this.themes.length;
-            document.body.classList.add(this.themes[this.currentTheme]);
-            
-            // ボタンエフェクト
-            this.elements.themeBtn.style.transform = 'rotate(360deg)';
-            setTimeout(() => {
-                this.elements.themeBtn.style.transform = '';
-            }, 300);
+        
+        // 書字方向
+        if (isVerticalWriting) {
+            displayArea.classList.add('vertical-rl');
+        } else {
+            displayArea.classList.remove('vertical-rl');
         }
+        
+        updateOpenTypeFeatures();
+    }
 
-        toggleWritingMode() {
-            this.isVerticalWriting = !this.isVerticalWriting;
-            this.elements.writingModeBtn.textContent = this.isVerticalWriting ? '横' : '縦';
-            this.elements.writingModeBtn.classList.toggle('active', this.isVerticalWriting);
-            
-            // キャレット位置復元を無効化して書字方向を更新
-            this.shouldRestoreCaret = false;
-            this.updateDisplayArea();
-            this.shouldRestoreCaret = true;
-            
-            // フォーカスを外してキーボードが出るのを防ぐ
-            this.elements.displayArea.blur();
-            
-            // モバイル対応：少し遅らせてフォーカスを完全に外す
-            setTimeout(() => {
-                if (document.activeElement === this.elements.displayArea) {
-                    document.activeElement.blur();
-                }
-            }, 100);
-        }
+    // ルビ変換（青空文庫記法をHTMLルビに変換）
+    function aozoraToRubyHTML(text) {
+        return text.replace(/｜([^《》]+)《([^》]+)》/g, '<ruby>$1<rt>$2</rt></ruby>')
+                  .replace(/([一-龯々]+)《([^》]+)》/g, '<ruby>$1<rt>$2</rt></ruby>');
+    }
 
-        togglePanel(targetPanel) {
-            if (!targetPanel) return;
-            
-            const panels = [this.elements.fontSizePanel, this.elements.opentypePanel, this.elements.threeDEffectPanel, this.elements.wikiPanel].filter(panel => panel);
-            const isCurrentlyOpen = targetPanel.style.display === 'flex';
-            
-            // 全パネルを閉じる
-            panels.forEach(panel => panel.style.display = 'none');
-            
-            // 対象パネルを開く（既に開いていた場合は閉じる）
-            if (!isCurrentlyOpen) {
-                targetPanel.style.display = 'flex';
-            }
-        }
-
-        handleOutsideClick(event) {
-            const panels = [this.elements.fontSizePanel, this.elements.opentypePanel, this.elements.threeDEffectPanel, this.elements.wikiPanel].filter(panel => panel);
-            const toolbar = document.querySelector('.floating-toolbar');
-            
-            if (toolbar && !toolbar.contains(event.target) && !panels.some(panel => panel.contains(event.target))) {
-                panels.forEach(panel => panel.style.display = 'none');
-            }
-        }
-
-        handleKeyboard(event) {
-            // Ctrl/Cmd + 数字でテーマ切り替え
-            if ((event.ctrlKey || event.metaKey) && event.key >= '1' && event.key <= '3') {
-                event.preventDefault();
-                const themeIndex = parseInt(event.key) - 1;
-                document.body.classList.remove(...this.themes);
-                document.body.classList.add(this.themes[themeIndex]);
-                this.currentTheme = themeIndex;
-            }
-            
-            // Ctrl/Cmd + +/- で文字サイズ変更
-            if ((event.ctrlKey || event.metaKey) && (event.key === '+' || event.key === '=')) {
-                event.preventDefault();
-                this.adjustFontSize(4);
-            }
-            if ((event.ctrlKey || event.metaKey) && event.key === '-') {
-                event.preventDefault();
-                this.adjustFontSize(-4);
-            }
-            
-            // Escキーでパネルを閉じる
-            if (event.key === 'Escape') {
-                const panels = [this.elements.fontSizePanel, this.elements.opentypePanel, this.elements.threeDEffectPanel, this.elements.wikiPanel].filter(panel => panel);
-                panels.forEach(panel => panel.style.display = 'none');
-            }
-        }
-
-        updateDisplayArea() {
-            // キャレット位置保存
-            const selection = window.getSelection();
-            let caretOffset = 0;
-            if (this.shouldRestoreCaret && selection.rangeCount > 0) {
-                const range = selection.getRangeAt(0);
-                const preCaretRange = range.cloneRange();
-                preCaretRange.selectNodeContents(this.elements.displayArea);
-                preCaretRange.setEnd(range.endContainer, range.endOffset);
-                caretOffset = preCaretRange.toString().length;
-            }
-
-            // ルビ変換
-            const rawText = this.elements.displayArea.innerText || '';
-            let htmlContent = rawText ? this.aozoraToRubyHTML(rawText) : '';
-            htmlContent = htmlContent.replace(/\n/g, '<br>');
-            this.elements.displayArea.innerHTML = htmlContent || '';
-
-            // キャレット位置復元（書字方向切り替え時はスキップ）
-            if (this.shouldRestoreCaret && caretOffset > 0) {
-                this.setCaretByOffset(this.elements.displayArea, caretOffset);
-            }
-
-            // 書字方向
-            this.elements.displayArea.classList.toggle('vertical-rl', this.isVerticalWriting);
-
-            this.updateOpenTypeFeatures();
-        }
-
-        aozoraToRubyHTML(text) {
-            return text.replace(/｜([^《》]+)《([^》]+)》/g, '<ruby>$1<rt>$2</rt></ruby>')
-                      .replace(/([一-龯々]+)《([^》]+)》/g, '<ruby>$1<rt>$2</rt></ruby>');
-        }
-
-        setCaretByOffset(element, offset) {
-            const walker = document.createTreeWalker(
-                element,
-                NodeFilter.SHOW_TEXT,
-                null,
-                false
-            );
-            
-            let currentOffset = 0;
-            let node;
-            
-            while (node = walker.nextNode()) {
-                const nodeLength = node.nodeValue.length;
-                if (currentOffset + nodeLength >= offset) {
-                    const range = document.createRange();
-                    range.setStart(node, offset - currentOffset);
+    // キャレット位置設定
+    function setCaretByOffset(node, offset) {
+        let stack = [node], count = 0, found = false;
+        while (stack.length && !found) {
+            let n = stack.shift();
+            if (n.nodeType === 3) { // text node
+                let len = n.nodeValue.length;
+                if (count + len >= offset) {
+                    let sel = window.getSelection();
+                    let range = document.createRange();
+                    range.setStart(n, offset - count);
                     range.collapse(true);
-                    
-                    const selection = window.getSelection();
-                    selection.removeAllRanges();
-                    selection.addRange(range);
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                    found = true;
                     break;
                 }
-                currentOffset += nodeLength;
-            }
-        }
-
-        handleFontFileSelection(event) {
-            const file = event.target.files[0];
-            
-            // 既存フォントのクリーンアップ
-            this.cleanupCurrentFont();
-
-            if (!file) {
-                this.showFontError('フォントファイルが選択されていません。');
-                return;
-            }
-
-            const allowedExtensions = ['otf', 'ttf', 'woff', 'woff2'];
-            const fileExtension = file.name.split('.').pop().toLowerCase();
-
-            if (!allowedExtensions.includes(fileExtension)) {
-                this.showFontError('対応していないファイル形式です。<br>.otf, .ttf, .woff, .woff2 のファイルを選択してください。');
-                return;
-            }
-
-            this.loadFont(file);
-        }
-
-        cleanupCurrentFont() {
-            if (this.currentFontObjectURL) {
-                URL.revokeObjectURL(this.currentFontObjectURL);
-                this.currentFontObjectURL = null;
-            }
-            if (this.customFontStyleElement) {
-                this.customFontStyleElement.remove();
-                this.customFontStyleElement = null;
-            }
-            this.elements.displayArea.style.fontFamily = '';
-        }
-
-        showFontError(message) {
-            this.elements.displayArea.innerHTML = `<div style="text-align: center; color: var(--text-secondary); font-style: italic; opacity: 0.8;">${message}</div>`;
-        }
-
-        loadFont(file) {
-            this.currentFontObjectURL = URL.createObjectURL(file);
-
-            this.customFontStyleElement = document.createElement('style');
-            this.customFontStyleElement.textContent = `
-                @font-face {
-                    font-family: '${this.FONT_FAMILY_NAME}';
-                    src: url('${this.currentFontObjectURL}');
-                }
-            `;
-            document.head.appendChild(this.customFontStyleElement);
-            
-            this.elements.displayArea.style.fontFamily = `'${this.FONT_FAMILY_NAME}', system-ui, sans-serif`;
-            this.updateDisplayArea();
-        }
-
-        handleOpenTypeInput() {
-            this.activeOpenTypeFeatures = this.elements.opentypeInput.value;
-            this.updateOpenTypeFeatures();
-        }
-
-        updateOpenTypeFeatures() {
-            if (!this.activeOpenTypeFeatures) {
-                this.elements.displayArea.style.fontFeatureSettings = '';
-                this.elements.displayArea.style.webkitFontFeatureSettings = '';
-                return;
-            }
-
-            const features = this.activeOpenTypeFeatures.split(',')
-                .map(f => f.trim())
-                .filter(f => f)
-                .map(f => /^'.*'$/.test(f) ? f : `'${f}' 1`)
-                .join(',');
-
-            this.elements.displayArea.style.fontFeatureSettings = features;
-            this.elements.displayArea.style.webkitFontFeatureSettings = features;
-        }
-
-        apply3DEffect(effectType) {
-            this.current3DEffect = effectType;
-            
-            // 既存エフェクトを削除
-            const effectClasses = ['effect-3d-basic', 'effect-3d-neon', 'effect-3d-emboss', 'effect-3d-deep', 'effect-3d-glow'];
-            this.elements.displayArea.classList.remove(...effectClasses);
-            
-            // 新しいエフェクトを適用
-            if (effectType !== 'none') {
-                this.elements.displayArea.classList.add(`effect-3d-${effectType}`);
-            }
-            
-            // アクティブボタン更新
-            document.querySelectorAll('.effect-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.effect === effectType);
-            });
-        }
-
-        async loadWikipediaText() {
-            this.elements.wikiLoadingMsg.style.display = 'flex';
-            this.elements.loadWikipediaBtn.disabled = true;
-            
-            try {
-                const wikiUrl = 'https://twitter-proxy.k-e034-twitter-proxy.workers.dev';
-                const res = await fetch(wikiUrl);
-                
-                if (!res.ok) {
-                    throw new Error(`HTTP ${res.status}: Wikipedia記事の取得に失敗しました`);
-                }
-                
-                const data = await res.json();
-                const title = data.title || '無題';
-                const extract = data.extract || data.content || data.text || 'コンテンツが見つかりませんでした';
-                
-                this.elements.displayArea.innerText = `${title}\n\n${extract}`;
-                this.updateDisplayArea();
-                this.elements.wikiPanel.style.display = 'none';
-                
-            } catch (e) {
-                console.error('Wikipedia記事の読み込みエラー:', e);
-                let errorMsg = 'Wikipedia記事の読み込みに失敗しました。';
-                if (e.name === 'TypeError' && e.message.includes('fetch')) {
-                    errorMsg += '\nネットワーク接続を確認してください。';
-                } else if (e.message.includes('HTTP')) {
-                    errorMsg += '\nサーバーエラーが発生しました。';
-                } else {
-                    errorMsg += `\n詳細: ${e.message}`;
-                }
-                alert(errorMsg);
-            } finally {
-                this.elements.wikiLoadingMsg.style.display = 'none';
-                this.elements.loadWikipediaBtn.disabled = false;
+                count += len;
+            } else if (n.childNodes && n.childNodes.length) {
+                for (let i = 0; i < n.childNodes.length; i++) stack.push(n.childNodes[i]);
             }
         }
     }
 
-    // アプリケーション開始
-    document.addEventListener('DOMContentLoaded', () => {
-        new FontViewer();
+    // フォントファイル選択処理
+    function handleFontFileSelection(event) {
+        const file = event.target.files[0];
+        
+        // 既存フォントのクリーンアップ
+        if (currentFontObjectURL) {
+            URL.revokeObjectURL(currentFontObjectURL);
+            currentFontObjectURL = null;
+        }
+        if (customFontStyleElement) {
+            customFontStyleElement.remove();
+            customFontStyleElement = null;
+        }
+        displayArea.style.fontFamily = '';
+
+        if (!file) {
+            displayArea.innerHTML = `<div style="text-align: center; color: var(--text-secondary); font-style: italic; opacity: 0.8;">フォントファイルが選択されていません。</div>`;
+            return;
+        }
+
+        const allowedTypes = ['font/otf', 'font/ttf', 'font/woff', 'font/woff2'];
+        const fileExtension = file.name.split('.').pop().toLowerCase();
+        const knownExtensions = ['otf', 'ttf', 'woff', 'woff2'];
+
+        if (!allowedTypes.includes(file.type) && !knownExtensions.includes(fileExtension)) {
+            displayArea.innerHTML = `<div style="text-align: center; color: var(--text-secondary); font-style: italic; opacity: 0.8;">エラー: .otf, .ttf, .woff, .woff2 形式の<br>フォントファイルを選択してください。</div>`;
+            return;
+        }
+
+        currentFontObjectURL = URL.createObjectURL(file);
+
+        customFontStyleElement = document.createElement('style');
+        customFontStyleElement.textContent = `
+            @font-face {
+                font-family: '${FONT_FAMILY_NAME}';
+                src: url('${currentFontObjectURL}');
+            }
+        `;
+        document.head.appendChild(customFontStyleElement);
+        
+        displayArea.style.fontFamily = `'${FONT_FAMILY_NAME}', system-ui, sans-serif`;
+        updateDisplayArea();
+    }
+
+    // 文字サイズ調整
+    function updateFontSize() {
+        displayArea.style.fontSize = currentFontSize + 'px';
+        fontSizeDisplay.textContent = currentFontSize + 'px';
+    }
+
+    function adjustFontSize(delta) {
+        currentFontSize = Math.max(12, Math.min(120, currentFontSize + delta));
+        fontSizeSlider.value = currentFontSize;
+        updateFontSize();
+    }
+
+    // OpenType機能の反映
+    function updateOpenTypeFeatures() {
+        let feat = activeOpenTypeFeatures.split(',')
+            .map(f => f.trim())
+            .filter(f => f)
+            .map(f => /^'.*'$/.test(f) ? f : `'${f}' 1`)
+            .join(',');
+        displayArea.style.fontFeatureSettings = feat;
+        displayArea.style.webkitFontFeatureSettings = feat;
+    }
+
+    // 3Dエフェクトの適用
+    function apply3DEffect(effectType) {
+        current3DEffect = effectType;
+        
+        // 既存のエフェクトクラスを削除
+        displayArea.classList.remove('effect-3d-basic', 'effect-3d-neon', 'effect-3d-emboss', 'effect-3d-deep', 'effect-3d-glow');
+        
+        // 新しいエフェクトを適用
+        if (effectType !== 'none') {
+            displayArea.classList.add(`effect-3d-${effectType}`);
+        }
+        
+        // アクティブボタンの更新
+        document.querySelectorAll('.effect-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.effect === effectType) {
+                btn.classList.add('active');
+            }
+        });
+    }
+
+    // Wikipedia記事読み込み
+    async function loadWikipediaText() {
+        wikiLoadingMsg.style.display = 'flex';
+        loadWikipediaBtn.disabled = true;
+        
+        try {
+            const wikiUrl = 'https://twitter-proxy.k-e034-twitter-proxy.workers.dev';
+            const res = await fetch(wikiUrl);
+            
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}: Wikipedia記事の取得に失敗しました`);
+            }
+            
+            const data = await res.json();
+            const title = data.title || '無題';
+            const extract = data.extract || data.content || data.text || 'コンテンツが見つかりませんでした';
+            
+            displayArea.innerText = `${title}\n\n${extract}`;
+            updateDisplayArea();
+            wikiPanel.style.display = 'none';
+            
+        } catch (e) {
+            console.error('Wikipedia記事の読み込みエラー:', e);
+            let errorMsg = 'Wikipedia記事の読み込みに失敗しました。';
+            if (e.name === 'TypeError' && e.message.includes('fetch')) {
+                errorMsg += '\nネットワーク接続を確認してください。';
+            } else if (e.message.includes('HTTP')) {
+                errorMsg += '\nサーバーエラーが発生しました。';
+            } else {
+                errorMsg += `\n詳細: ${e.message}`;
+            }
+            alert(errorMsg);
+        } finally {
+            wikiLoadingMsg.style.display = 'none';
+            loadWikipediaBtn.disabled = false;
+        }
+    }
+
+    // イベントリスナーの設定
+    // フォントファイル選択
+    fontFileInput.addEventListener('change', handleFontFileSelection);
+    fontFileBtn.addEventListener('click', () => fontFileInput.click());
+    
+    // 文字サイズ調整
+    fontSizeBtn.addEventListener('click', () => togglePanel(fontSizePanel));
+    fontSizeSlider.addEventListener('input', () => {
+        currentFontSize = parseInt(fontSizeSlider.value);
+        updateFontSize();
     });
+    fontSizeIncrease.addEventListener('click', () => adjustFontSize(4));
+    fontSizeDecrease.addEventListener('click', () => adjustFontSize(-4));
+    fontSizeReset.addEventListener('click', () => {
+        currentFontSize = 40;
+        fontSizeSlider.value = currentFontSize;
+        updateFontSize();
+    });
+    
+    // テーマ切替
+    themeBtn.addEventListener('click', () => {
+        document.body.classList.remove(...themes);
+        currentTheme = (currentTheme + 1) % themes.length;
+        document.body.classList.add(themes[currentTheme]);
+        
+        // ボタンエフェクト
+        themeBtn.style.transform = 'rotate(360deg)';
+        setTimeout(() => {
+            themeBtn.style.transform = '';
+        }, 300);
+    });
+    
+    // 縦書き/横書き切替（修正版）
+    writingModeBtn.addEventListener('click', () => {
+        isVerticalWriting = !isVerticalWriting;
+        writingModeBtn.textContent = isVerticalWriting ? '横' : '縦';
+        writingModeBtn.classList.toggle('active', isVerticalWriting);
+        
+        // キャレット位置復元を無効化して書字方向を更新
+        shouldRestoreCaret = false;
+        updateDisplayArea();
+        shouldRestoreCaret = true;
+        
+        // フォーカスを外してキーボードが出るのを防ぐ
+        displayArea.blur();
+        
+        // モバイル対応：少し遅らせてフォーカスを完全に外す
+        setTimeout(() => {
+            if (document.activeElement === displayArea) {
+                document.activeElement.blur();
+            }
+        }, 100);
+    });
+    
+    // OpenType機能パネル
+    opentypeBtn.addEventListener('click', () => {
+        togglePanel(opentypePanel);
+    });
+    opentypeInput.addEventListener('input', () => {
+        activeOpenTypeFeatures = opentypeInput.value;
+        updateOpenTypeFeatures();
+    });
+    
+    // 3Dエフェクトパネル
+    threeDEffectBtn.addEventListener('click', () => {
+        togglePanel(threeDEffectPanel);
+    });
+    
+    // 3Dエフェクトボタン
+    document.querySelectorAll('.effect-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            apply3DEffect(btn.dataset.effect);
+        });
+    });
+    
+    // Wikipedia記事パネル
+    wikiBtn.addEventListener('click', () => {
+        togglePanel(wikiPanel);
+    });
+    loadWikipediaBtn.addEventListener('click', loadWikipediaText);
+    
+    // テキスト編集対応
+    displayArea.addEventListener('compositionstart', () => { isComposing = true; });
+    displayArea.addEventListener('compositionend', () => {
+        isComposing = false;
+        updateDisplayArea();
+    });
+    displayArea.addEventListener('input', () => {
+        if (!isComposing) {
+            updateDisplayArea();
+        }
+    });
+    
+    // パネル外クリックで閉じる
+    document.addEventListener('click', (event) => {
+        const panels = [fontSizePanel, opentypePanel, threeDEffectPanel, wikiPanel];
+        const toolbar = document.querySelector('.floating-toolbar');
+        
+        if (!toolbar.contains(event.target) && !panels.some(panel => panel.contains(event.target))) {
+            panels.forEach(panel => panel.style.display = 'none');
+        }
+    });
+
+    // キーボードショートカット
+    document.addEventListener('keydown', (event) => {
+        // Ctrl/Cmd + 数字でテーマ切り替え
+        if ((event.ctrlKey || event.metaKey) && event.key >= '1' && event.key <= '3') {
+            event.preventDefault();
+            const themeIndex = parseInt(event.key) - 1;
+            document.body.classList.remove(...themes);
+            document.body.classList.add(themes[themeIndex]);
+            currentTheme = themeIndex;
+        }
+        
+        // Ctrl/Cmd + +/- で文字サイズ変更
+        if ((event.ctrlKey || event.metaKey) && (event.key === '+' || event.key === '=')) {
+            event.preventDefault();
+            adjustFontSize(4);
+        }
+        if ((event.ctrlKey || event.metaKey) && event.key === '-') {
+            event.preventDefault();
+            adjustFontSize(-4);
+        }
+        
+        // Escキーでパネルを閉じる
+        if (event.key === 'Escape') {
+            const panels = [fontSizePanel, opentypePanel, threeDEffectPanel, wikiPanel];
+            panels.forEach(panel => panel.style.display = 'none');
+        }
+    });
+
+    // 初期化
+    updateDisplayArea();
+    updateFontSize();
+});
 </script>
 ```
 
