@@ -1,809 +1,426 @@
+大変失礼いたしました。運用方法を考慮せず、ファイルを分割してしまいました。
+ご指摘の通り、単一のHTMLファイルにCSSとJavaScriptをすべて含んだ形で、再度コードを作成します。
+以下のコードをコピーして単一の .html ファイルとして保存すれば、そのままお使いいただけます。
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>フォント表示確認ツール - わたくしの道具箱</title>
-    <link rel="icon" href="images/icons/favicon.ico" sizes="32x32">
-    <link rel="icon" href="images/icons/favicon.svg" type="image/svg">
-    <link rel="stylesheet" href="css/main.css">
-    <!-- SVGフィルター定義 -->
-    <svg width="0" height="0" style="position: absolute;">
-        <filter id="sticker-desktop" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
-            <feOffset dx="2" dy="2" result="offset"/>
-            <feFlood flood-color="#000000" flood-opacity="0.4"/>
-            <feComposite in2="offset" operator="in"/>
-            <feMerge>
-                <feMergeNode/>
-                <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-        </filter>
-        
-        <filter id="sticker-mobile" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur in="SourceAlpha" stdDeviation="1"/>
-            <feOffset dx="1" dy="1" result="offset"/>
-            <feFlood flood-color="#000000" flood-opacity="0.3"/>
-            <feComposite in2="offset" operator="in"/>
-            <feMerge>
-                <feMergeNode/>
-                <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-        </filter>
-    </svg>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Font Viewer</title>
     <style>
-        /* フォントビューワー専用スタイル */
-        html, body {
-            height: 100vh !important;
-            width: 100vw !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: hidden !important;
-            background-color: var(--background-color) !important;
+        /* --- 変数定義と基本設定 --- */
+        :root {
+            --font-family-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --border-radius: 8px;
+            --transition-speed: 0.2s;
         }
 
-        /* テーマシステム */
-        body.theme-1 {
-            --bg-color: #0a0a1a;
-            --text-color: #e0e6ff;
-            --accent-color: #00ffe7;
-            --panel-bg: rgba(20,30,60,0.7);
-            --panel-border: #00ffe7;
+        body.theme-light {
+            --bg-color: #f8f9fa;
+            --panel-bg-color: #ffffff;
+            --text-color: #212529;
+            --quiet-text-color: #6c757d;
+            --primary-color: #007bff;
+            --primary-hover-color: #0056b3;
+            --border-color: #dee2e6;
+            --input-bg-color: #f1f3f5;
         }
-        
-        body.theme-2 {
-            --bg-color: #000;
-            --text-color: #ffd900;
-            --accent-color: #ffb300;
-            --panel-bg: rgba(40,40,0,0.7);
-            --panel-border: #ffd900;
-        }
-        
-        body.theme-3 {
-            --bg-color: linear-gradient(180deg, #ffb347 0%, #ffb347 70%, #2ee59d 100%);
-            --text-color: #222;
-            --accent-color: #2e8b57;
-            --panel-bg: rgba(255,255,255,0.9);
-            --panel-border: #2e8b57;
+
+        body.theme-dark {
+            --bg-color: #121212;
+            --panel-bg-color: #1e1e1e;
+            --text-color: #e0e0e0;
+            --quiet-text-color: #888888;
+            --primary-color: #4dabf7;
+            --primary-hover-color: #1c7ed6;
+            --border-color: #444444;
+            --input-bg-color: #2c2c2c;
         }
 
         body {
-            background: var(--bg-color);
+            margin: 0;
+            font-family: var(--font-family-ui);
+            background-color: var(--bg-color);
             color: var(--text-color);
-        }
-
-        /* メイン表示エリア */
-        #displayArea {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            width: 90vw;
-            min-height: 0;
-            min-width: 0;
-            max-width: 100vw;
-            max-height: 100vh;
-            border: none;
-            padding: 4vw;
-            overflow: auto;
-            line-height: 1.7;
-            box-sizing: border-box;
-            background: transparent !important;
-            color: var(--text-color);
-            border-radius: 0;
-            box-shadow: none;
-            transition: color 0.3s;
-            font-size: 40px;
-            outline: none;
-            z-index: 1;
-            user-select: text;
-            cursor: text;
-            display: block;
-            margin: auto;
-            text-align: left;
-            font-family: 'UserCustomFont', 'ETD-Hebereke', 'rdy', sans-serif;
-        }
-
-        #displayArea[contenteditable="true"]:empty:before {
-            content: 'ここにテキストを直接入力・編集できます';
-            color: #bbb;
-            font-size: 0.7em;
-        }
-
-        /* 縦書き対応 */
-        #displayArea.vertical-rl {
-            writing-mode: vertical-rl;
-            -webkit-writing-mode: vertical-rl;
-            -ms-writing-mode: tb-rl;
-            text-orientation: mixed;
-            width: 40vw;
+            display: grid;
+            grid-template-columns: 340px 1fr;
             height: 100vh;
+            overflow: hidden;
+            transition: background-color var(--transition-speed), color var(--transition-speed);
         }
 
-        /* ルビスタイル */
-        :root { --ruby-scale: .5; }
-        #displayArea rt { 
-            font-size: calc(var(--ruby-scale) * 1em);
-            font-family: inherit;
-        }
-
-        /* フローティングボタン */
-        #floatingBtns {
-            position: fixed;
-            right: 2vw;
-            bottom: 2vh;
-            z-index: 100;
+        /* --- サイドバー --- */
+        .controls {
+            background-color: var(--panel-bg-color);
+            padding: 1.5rem 2rem;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+            overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 2rem;
+            border-right: 1px solid var(--border-color);
         }
 
-        #floatingBtns button {
-            width: 50px;
-            height: 50px;
-            border: none;
-            border-radius: 50%;
-            background-color: var(--accent-color);
-            color: var(--text-color);
-            cursor: pointer;
-            font-size: 1.2rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        #floatingBtns button:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-        }
-
-        #floatingBtns input[type="file"] {
-            display: none;
-        }
-
-        /* パネル共通スタイル */
-        .control-panel {
-            position: fixed;
-            right: 60px;
-            bottom: 2vh;
-            z-index: 200;
-            background: var(--panel-bg);
-            color: var(--text-color);
-            border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.5);
-            padding: 16px;
-            display: none;
-            flex-direction: column;
-            gap: 12px;
-            width: 300px;
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid var(--panel-border);
-            backdrop-filter: blur(10px);
-        }
-
-        .control-panel input, .control-panel select, .control-panel button {
-            width: 100%;
-            padding: 8px;
-            border-radius: 6px;
-            border: 1px solid var(--panel-border);
-            outline: none;
-            background: rgba(255,255,255,0.9);
-            color: #222;
-            font-family: inherit;
-        }
-
-        .control-panel button {
-            background-color: var(--accent-color);
-            color: var(--text-color);
-            cursor: pointer;
-            font-size: 0.95em;
-            transition: opacity 0.3s;
-        }
-
-        .control-panel button:hover {
-            opacity: 0.8;
-        }
-
-        .control-panel button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        /* 3Dエフェクトパネル */
-        .effect-btn {
-            padding: 8px 12px;
-            background-color: rgba(255,255,255,0.1);
-            color: var(--text-color);
-            border: 1px solid rgba(255,255,255,0.3);
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9em;
-            transition: all 0.3s;
-        }
-
-        .effect-btn:hover {
-            background-color: rgba(255,255,255,0.2);
-            border-color: var(--accent-color);
-        }
-
-        .effect-btn.active {
-            background-color: var(--accent-color);
-            color: var(--bg-color);
-            border-color: var(--accent-color);
-        }
-
-        /* 3Dエフェクト用のCSS（プレーンテキストに付加するのみ） */
-        .effect-3d-basic {
-            text-shadow: 
-                1px 1px 0 #ccc,
-                2px 2px 0 #bbb,
-                3px 3px 0 #aaa,
-                4px 4px 0 #999,
-                5px 5px 0 #888,
-                6px 6px 10px rgba(0,0,0,0.3);
-            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
-        }
-
-        .effect-3d-neon {
-            text-shadow: 
-                0 0 5px currentColor,
-                0 0 10px currentColor,
-                0 0 15px currentColor,
-                0 0 20px currentColor;
-            filter: drop-shadow(0 0 10px currentColor);
-        }
-
-        .effect-3d-emboss {
-            text-shadow: 
-                -1px -1px 0 rgba(255,255,255,0.8),
-                1px 1px 0 rgba(0,0,0,0.8),
-                2px 2px 0 rgba(0,0,0,0.6),
-                3px 3px 0 rgba(0,0,0,0.4);
-            filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.5));
-        }
-
-        .effect-3d-deep {
-            text-shadow: 
-                1px 1px 0 #ddd,
-                2px 2px 0 #ccc,
-                3px 3px 0 #bbb,
-                4px 4px 0 #aaa,
-                5px 5px 0 #999,
-                6px 6px 0 #888,
-                7px 7px 0 #777,
-                8px 8px 0 #666,
-                9px 9px 0 #555,
-                10px 10px 20px rgba(0,0,0,0.5);
-            filter: drop-shadow(5px 5px 10px rgba(0,0,0,0.5));
-        }
-
-        .effect-3d-glow {
-            text-shadow: 
-                0 0 10px currentColor,
-                0 0 20px currentColor,
-                0 0 30px currentColor,
-                0 0 40px currentColor;
-            filter: drop-shadow(0 0 15px currentColor);
-        }
-
-        /* 背景3Dグリッド */
-        #bg3dCanvas {
-            position: fixed;
-            z-index: -1;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            pointer-events: none;
-            background: transparent !important;
-        }
-
-        /* ロード状態表示 */
-        .loading-message {
-            text-align: center;
-            color: var(--accent-color);
-            font-size: 0.9em;
-            display: none;
-        }
-
-        .font-not-loaded-placeholder {
-            font-style: italic;
-            color: #777;
+        .controls header h1 { margin: 0; font-size: 1.8rem; }
+        .controls header p { margin: 0.25rem 0 0; color: var(--quiet-text-color); }
+        .control-group h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--quiet-text-color);
             display: flex;
             align-items: center;
-            justify-content: center;
-            height: 100%;
+            gap: 0.5rem;
+        }
+
+        /* --- UIコンポーネント --- */
+        button, .file-label {
+            font-family: var(--font-family-ui);
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: none;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
             text-align: center;
+            transition: background-color var(--transition-speed) ease;
+        }
+        button:hover, .file-label:hover { background-color: var(--primary-hover-color); }
+        #theme-toggle-btn { background-color: var(--quiet-text-color); }
+        #theme-toggle-btn:hover { background-color: var(--text-color); }
+
+        .file-label input { display: none; }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .setting-item label { user-select: none; }
+
+        .toggle-switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--input-bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 34px;
+            transition: var(--transition-speed);
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px;
+            background-color: var(--quiet-text-color);
+            border-radius: 50%;
+            transition: var(--transition-speed);
+        }
+        input:checked + .slider { background-color: var(--primary-color); }
+        input:checked + .slider:before { transform: translateX(22px); background-color: white; }
+
+        .feature-toggle label { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; cursor: pointer; user-select: none; }
+        .custom-feature-label { font-size: 0.9rem; margin-top: 1rem; display: block; color: var(--quiet-text-color); }
+        input[type="text"], input[type="range"] { width: 100%; box-sizing: border-box; }
+        input[type="text"] {
+            background: var(--input-bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.5rem;
+            border-radius: var(--border-radius);
+        }
+        .loading-message { text-align: center; color: var(--quiet-text-color); font-size: 0.9em; display: none; }
+
+        /* --- テキスト表示エリア --- */
+        .viewer {
+            padding: 2rem 4rem;
+            overflow: auto; /* ★重要: これでエリア内スクロールが実現し、はみ出しを防ぐ */
         }
 
-        /* レスポンシブ対応 */
-        @media (max-width: 600px) {
-            #displayArea {
-                width: 98vw;
-                font-size: 20px;
-                padding: 2vw;
-            }
-            
-            #displayArea.vertical-rl {
-                width: 70vw;
-                height: 98vh;
-                font-size: 20px;
-            }
-            
-            #floatingBtns {
-                right: 2vw;
-                bottom: 2vh;
-                gap: 8px;
-            }
-            
-            #floatingBtns button {
-                font-size: 1.2em;
-                padding: 12px 0;
-                min-width: 44px;
-                min-height: 44px;
-            }
-            
-            .control-panel {
-                right: 2vw;
-                bottom: 10vh;
-                padding: 8px 8px;
-                font-size: 0.95em;
-                width: 280px;
-            }
+        #display-area {
+            width: 100%;
+            max-width: 100%;
+            height: 100%;
+            outline: none;
+            line-height: 1.8;
+            font-size: 24px;
+            color: var(--text-color);
+            box-sizing: border-box;
+        }
+        #display-area p:first-child { margin-top: 0; }
+
+        /* 縦書きスタイル */
+        #display-area.vertical-rl {
+            writing-mode: vertical-rl;
+            -webkit-writing-mode: vertical-rl;
+            height: auto;
+            max-width: none;
+            padding-left: 2rem;
         }
 
-        /* テーマ別のボタンスタイル */
-        body.theme-1 #floatingBtns button {
-            background-color: #00ffe7 !important;
-            color: #222 !important;
+        /* ルビ */
+        #display-area rt {
+            font-size: 0.5em;
+            font-feature-settings: 'palt' 1;
         }
-        body.theme-2 #floatingBtns button {
-            background-color: #ffb300 !important;
-            color: #fff !important;
-        }
-        body.theme-3 #floatingBtns button {
-            background-color: #2e8b57 !important;
-            color: #222 !important;
+
+        @media (max-width: 768px) {
+            body { grid-template-columns: 1fr; }
+            .controls { display: none; /* スマホでは非表示にするか、モーダルにするなど別途対応 */ }
+            .viewer { padding: 1.5rem; }
         }
     </style>
 </head>
-<body class="font-viewer theme-1">
+<body class="theme-light">
 
-    <!-- 背景3Dグリッド -->
-    <div id="bg3dCanvas" class="bg-3d-canvas"></div>
+    <aside class="controls">
+        <header>
+            <h1>Font Viewer</h1>
+            <p>フォントの表示を確認するツール</p>
+        </header>
 
-    <!-- メイン表示エリア（直接編集可） -->
-    <div id="displayArea" contenteditable="true" spellcheck="false">ここにテキストを入力してください</div>
+        <section class="control-group">
+            <h2><span class="icon">📁</span>フォント</h2>
+            <label for="font-file-input" class="file-label">
+                フォントファイルを選択
+                <input type="file" id="font-file-input" accept=".ttf, .otf, .woff, .woff2">
+            </label>
+        </section>
 
-    <!-- フローティング設定ボタン群 -->
-    <div id="floatingBtns" class="floating-btns">
-        <input type="file" id="fontFile" accept=".otf,.ttf,.woff,.woff2">
-        <button id="fontFileBtn" title="フォントを選択">📁</button>
-        <button id="themeBtn" title="テーマ切替">⚙</button>
-        <button id="writingModeBtn" title="縦書き/横書き切替">縦</button>
-        <button id="opentypeBtn" title="OpenType機能">OT</button>
-        <button id="threeDEffectBtn" title="3Dエフェクト">3D</button>
-        <button id="wikiBtn" title="Wikipedia記事ランダム表示">Wiki</button>
-    </div>
+        <section class="control-group">
+            <h2><span class="icon">📄</span>テキスト</h2>
+            <button id="fetch-wiki-btn">Wikipediaの記事を読込</button>
+            <div id="wiki-loading-msg" class="loading-message">読み込み中...</div>
+        </section>
 
-    <!-- OpenType機能パネル -->
-    <div id="opentypePanel" class="control-panel">
-        <label>OpenType機能（カンマ区切りで入力）</label>
-        <input id="opentypeInput" type="text" placeholder="例: liga, kern, ss01">
-    </div>
+        <section class="control-group">
+            <h2><span class="icon">↕↔</span>表示設定</h2>
+            <div class="setting-item">
+                <span>書字方向 (縦/横)</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="writing-mode-toggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+             <div class="setting-item">
+                <span>テーマ (明/暗)</span>
+                <button id="theme-toggle-btn">テーマ切替</button>
+            </div>
+            <div class="setting-item">
+                <label for="font-size-slider">文字サイズ: <span id="font-size-value">24</span>px</label>
+                <input type="range" id="font-size-slider" min="12" max="120" value="24">
+            </div>
+        </section>
 
-    <!-- 3Dエフェクト選択パネル -->
-    <div id="threeDEffectPanel" class="control-panel">
-        <div style="font-size:1.1em;font-weight:bold;text-align:center;margin-bottom:8px;">3Dエフェクト</div>
-        <button class="effect-btn active" data-effect="none">エフェクト無し</button>
-        <button class="effect-btn" data-effect="basic">基本立体</button>
-        <button class="effect-btn" data-effect="neon">ネオン</button>
-        <button class="effect-btn" data-effect="emboss">エンボス</button>
-        <button class="effect-btn" data-effect="deep">深い立体</button>
-        <button class="effect-btn" data-effect="glow">グロー</button>
-    </div>
+        <section class="control-group">
+            <h2><span class="icon">💡</span>OpenType機能</h2>
+            <div class="feature-toggle">
+                <label><input type="checkbox" data-feature="palt"> プロポーショナルメトリクス (palt)</label>
+            </div>
+            <div class="feature-toggle">
+                <label><input type="checkbox" data-feature="kern"> カーニング (kern)</label>
+            </div>
+            <div class="feature-toggle">
+                <label><input type="checkbox" data-feature="liga"> 合字 (liga)</label>
+            </div>
+             <div class="feature-toggle">
+                <label><input type="checkbox" data-feature="ss01"> スタイリスティックセット 1 (ss01)</label>
+            </div>
+            <label for="opentype-input" class="custom-feature-label">カスタム機能:</label>
+            <input type="text" id="opentype-input" placeholder="例: 'smcp', 'swsh'">
+        </section>
+    </aside>
 
-    <!-- Wikipedia記事パネル -->
-    <div id="wikiPanel" class="control-panel">
-        <div style="font-size:1.1em;font-weight:bold;text-align:center;margin-bottom:8px;">Wikipedia記事</div>
-        <button id="loadWikipediaBtn">ランダム記事を読み込み</button>
-        <div id="wikiLoadingMsg" class="loading-message">読み込み中...</div>
-    </div>
-
-    <!-- Three.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/build/three.min.js"></script>
+    <main class="viewer">
+        <div id="display-area" contenteditable="true" spellcheck="false">
+            <p>ここにテキストを直接入力できます。｜青空文庫《あおぞらぶんこ》形式のルビにも対応しています。</p>
+            <p>左のパネルからフォントファイルを選択してください。</p>
+        </div>
+    </main>
 
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // DOM要素の取得
-        const fontFileInput = document.getElementById('fontFile');
-        const fontFileBtn = document.getElementById('fontFileBtn');
-        const themeBtn = document.getElementById('themeBtn');
-        const writingModeBtn = document.getElementById('writingModeBtn');
-        const opentypeBtn = document.getElementById('opentypeBtn');
-        const opentypePanel = document.getElementById('opentypePanel');
-        const opentypeInput = document.getElementById('opentypeInput');
-        const threeDEffectBtn = document.getElementById('threeDEffectBtn');
-        const threeDEffectPanel = document.getElementById('threeDEffectPanel');
-        const wikiBtn = document.getElementById('wikiBtn');
-        const wikiPanel = document.getElementById('wikiPanel');
-        const loadWikipediaBtn = document.getElementById('loadWikipediaBtn');
-        const wikiLoadingMsg = document.getElementById('wikiLoadingMsg');
-        const displayArea = document.getElementById('displayArea');
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM要素の取得 ---
+            const fontFileInput = document.getElementById('font-file-input');
+            const fetchWikiBtn = document.getElementById('fetch-wiki-btn');
+            const wikiLoadingMsg = document.getElementById('wiki-loading-msg');
+            const writingModeToggle = document.getElementById('writing-mode-toggle');
+            const themeToggleBtn = document.getElementById('theme-toggle-btn');
+            const fontSizeSlider = document.getElementById('font-size-slider');
+            const fontSizeValue = document.getElementById('font-size-value');
+            const displayArea = document.getElementById('display-area');
+            const openTypeCheckboxes = document.querySelectorAll('.feature-toggle input[type="checkbox"]');
+            const openTypeInput = document.getElementById('opentype-input');
 
-        // 状態変数
-        let currentFontObjectURL = null;
-        let isVerticalWriting = false;
-        let customFontStyleElement = null;
-        let activeOpenTypeFeatures = '';
-        let isComposing = false;
-        let current3DEffect = 'none';
+            const FONT_FAMILY_NAME = 'UserCustomFont';
+            let isComposing = false; // 日本語入力中のフラグ
 
-        const FONT_FAMILY_NAME = 'UserCustomFont';
+            // --- イベントリスナーの設定 ---
 
-        // 背景3Dグリッド関連
-        let bgWaveRenderer, bgWaveScene, bgWaveCamera, bgWaveMesh, bgWaveAnimId;
+            // 1. フォントファイル読み込み
+            fontFileInput.addEventListener('change', handleFontFile);
 
-        // 初期化
-        function initializeApp() {
-            setupEventListeners();
-            initBgWaveGrid();
-            updateDisplayArea();
-        }
+            // 2. Wikipedia記事読み込み
+            fetchWikiBtn.addEventListener('click', fetchWikipediaArticle);
 
-        // イベントリスナーの設定
-        function setupEventListeners() {
-            // フォントファイル選択
-            fontFileInput.addEventListener('change', handleFontFileSelection);
-            fontFileBtn.addEventListener('click', () => fontFileInput.click());
-            
-            // テーマ切替
-            const themes = ['theme-1','theme-2','theme-3'];
-            themeBtn.addEventListener('click', () => {
-                let now = themes.findIndex(t => document.body.classList.contains(t));
-                let next = (now + 1) % themes.length;
-                document.body.classList.remove(...themes);
-                document.body.classList.add(themes[next]);
-                setBgWaveTheme(themes[next]);
-                updateTextColorAuto();
+            // 3. 書字方向の切り替え
+            writingModeToggle.addEventListener('change', () => {
+                displayArea.classList.toggle('vertical-rl', writingModeToggle.checked);
             });
-            
-            // 縦書き/横書き切替
-            writingModeBtn.addEventListener('click', () => {
-                isVerticalWriting = !isVerticalWriting;
-                writingModeBtn.textContent = isVerticalWriting ? '横' : '縦';
-                updateDisplayArea();
+
+            // 4. テーマ切り替え
+            themeToggleBtn.addEventListener('click', () => {
+                document.body.classList.toggle('theme-dark');
+                document.body.classList.toggle('theme-light');
             });
-            
-            // OpenType機能パネル
-            opentypeBtn.addEventListener('click', () => {
-                togglePanel(opentypePanel);
+
+            // 5. フォントサイズ変更
+            fontSizeSlider.addEventListener('input', (e) => {
+                const newSize = e.target.value;
+                displayArea.style.fontSize = `${newSize}px`;
+                fontSizeValue.textContent = newSize;
             });
-            opentypeInput.addEventListener('input', () => {
-                activeOpenTypeFeatures = opentypeInput.value;
-                updateOpenTypeFeatures();
-            });
+
+            // 6. OpenType機能の適用
+            openTypeCheckboxes.forEach(cb => cb.addEventListener('change', applyOpenTypeFeatures));
+            openTypeInput.addEventListener('input', applyOpenTypeFeatures);
             
-            // 3Dエフェクトパネル
-            threeDEffectBtn.addEventListener('click', () => {
-                togglePanel(threeDEffectPanel);
-            });
-            
-            // 3Dエフェクトボタン
-            document.querySelectorAll('.effect-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    apply3DEffect(btn.dataset.effect);
-                });
-            });
-            
-            // Wikipedia記事パネル
-            wikiBtn.addEventListener('click', () => {
-                togglePanel(wikiPanel);
-            });
-            loadWikipediaBtn.addEventListener('click', loadWikipediaText);
-            
-            // テキスト編集対応
+            // 7. contenteditableの入力イベント（ルビ変換対応）
             displayArea.addEventListener('compositionstart', () => { isComposing = true; });
-            displayArea.addEventListener('compositionend', () => {
-                isComposing = false;
-                updateDisplayArea();
-            });
+            displayArea.addEventListener('compositionend', handleInput);
             displayArea.addEventListener('input', () => {
-                if (!isComposing) {
-                    updateDisplayArea();
-                }
+                if (!isComposing) handleInput();
             });
-            
-            // リサイズ対応
-            window.addEventListener('resize', resizeBgWave);
-        }
 
-        // パネルの表示切替
-        function togglePanel(targetPanel) {
-            const panels = [opentypePanel, threeDEffectPanel, wikiPanel];
-            panels.forEach(panel => {
-                if (panel === targetPanel) {
-                    panel.style.display = panel.style.display === 'flex' ? 'none' : 'flex';
-                } else {
-                    panel.style.display = 'none';
-                }
-            });
-        }
 
-        // 表示エリアの更新
-        function updateDisplayArea() {
-            // キャレット位置保存
-            let sel = window.getSelection();
-            let caretOffset = 0;
-            if (sel && sel.rangeCount > 0) {
-                let range = sel.getRangeAt(0);
-                let preCaretRange = range.cloneRange();
-                preCaretRange.selectNodeContents(displayArea);
-                preCaretRange.setEnd(range.endContainer, range.endOffset);
-                caretOffset = preCaretRange.toString().length;
+            // --- 機能の実装 ---
+
+            /** フォントファイルを読み込み、適用する */
+            function handleFontFile(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const font = new FontFace(FONT_FAMILY_NAME, e.target.result);
+                    document.fonts.add(font);
+                    font.load().then(() => {
+                        displayArea.style.fontFamily = FONT_FAMILY_NAME;
+                    }).catch(err => console.error('フォントの読み込みに失敗:', err));
+                };
+                reader.readAsArrayBuffer(file);
             }
             
-            // ルビ変換
-            let raw = displayArea.innerText || '';
-            let html = raw ? aozoraToRubyHTML(raw) : '';
-            html = html.replace(/\n/g, '<br>');
-            if (!html) html = '';
-            displayArea.innerHTML = html;
-            
-            // キャレット位置復元
-            setCaretByOffset(displayArea, caretOffset);
-            
-            // 書字方向
-            if (isVerticalWriting) {
-                displayArea.classList.add('vertical-rl');
-            } else {
-                displayArea.classList.remove('vertical-rl');
+            /** Wikipediaのランダムな記事を取得して表示する */
+            async function fetchWikipediaArticle() {
+                wikiLoadingMsg.style.display = 'block';
+                fetchWikiBtn.disabled = true;
+                
+                // 注: このプロキシURLは以前のコードにあったものです。
+                // もし動作しない場合は、ご自身で用意したプロキシや別のAPIエンドポイントに置き換えてください。
+                const endpoint = 'https://twitter-proxy.k-e034-twitter-proxy.workers.dev';
+
+                try {
+                    const response = await fetch(endpoint);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    
+                    const data = await response.json();
+                    const title = data.title || '無題';
+                    const extract = data.extract || data.content || '本文が見つかりませんでした。';
+                    
+                    displayArea.innerText = `${title}\n\n${extract}`;
+                    handleInput(); // ルビ変換などを適用
+                } catch (error) {
+                    console.error('Wikipedia記事の取得に失敗しました:', error);
+                    displayArea.innerText = '記事の取得に失敗しました。ネットワーク接続を確認するか、開発者コンソールを確認してください。';
+                } finally {
+                    wikiLoadingMsg.style.display = 'none';
+                    fetchWikiBtn.disabled = false;
+                }
             }
-            
-            updateTextColorAuto();
-            updateOpenTypeFeatures();
-        }
 
-        // ルビ変換（青空文庫記法をHTMLルビに変換）
-        function aozoraToRubyHTML(text) {
-            return text.replace(/｜([^《》]+)《([^》]+)》/g, '<ruby>$1<rt>$2</rt></ruby>')
-                      .replace(/([一-龯々]+)《([^》]+)》/g, '<ruby>$1<rt>$2</rt></ruby>');
-        }
-
-        // キャレット位置設定
-        function setCaretByOffset(node, offset) {
-            let stack = [node], count = 0, found = false;
-            while (stack.length && !found) {
-                let n = stack.shift();
-                if (n.nodeType === 3) { // text node
-                    let len = n.nodeValue.length;
-                    if (count + len >= offset) {
-                        let sel = window.getSelection();
-                        let range = document.createRange();
-                        range.setStart(n, offset - count);
-                        range.collapse(true);
-                        sel.removeAllRanges();
-                        sel.addRange(range);
-                        found = true;
-                        break;
+            /** OpenType機能をCSSに適用する */
+            function applyOpenTypeFeatures() {
+                const features = [];
+                // チェックボックスから取得
+                openTypeCheckboxes.forEach(cb => {
+                    if (cb.checked) {
+                        features.push(`"${cb.dataset.feature}"`);
                     }
-                    count += len;
-                } else if (n.childNodes && n.childNodes.length) {
-                    for (let i = 0; i < n.childNodes.length; i++) stack.push(n.childNodes[i]);
-                }
-            }
-        }
-
-        // フォントファイル選択処理
-        function handleFontFileSelection(event) {
-            const file = event.target.files[0];
-            
-            // 既存フォントのクリーンアップ
-            if (currentFontObjectURL) {
-                URL.revokeObjectURL(currentFontObjectURL);
-                currentFontObjectURL = null;
-            }
-            if (customFontStyleElement) {
-                customFontStyleElement.remove();
-                customFontStyleElement = null;
-            }
-            displayArea.style.fontFamily = '';
-
-            if (!file) {
-                displayArea.innerHTML = `<span class="font-not-loaded-placeholder">フォントファイルが選択されていません。</span>`;
-                return;
-            }
-
-            const allowedTypes = ['font/otf', 'font/ttf', 'font/woff', 'font/woff2'];
-            const fileExtension = file.name.split('.').pop().toLowerCase();
-            const knownExtensions = ['otf', 'ttf', 'woff', 'woff2'];
-
-            if (!allowedTypes.includes(file.type) && !knownExtensions.includes(fileExtension)) {
-                displayArea.innerHTML = `<span class="font-not-loaded-placeholder">エラー: .otf, .ttf, .woff, .woff2 形式の<br>フォントファイルを選択してください。</span>`;
-                return;
-            }
-
-            currentFontObjectURL = URL.createObjectURL(file);
-
-            customFontStyleElement = document.createElement('style');
-            customFontStyleElement.textContent = `
-                @font-face {
-                    font-family: '${FONT_FAMILY_NAME}';
-                    src: url('${currentFontObjectURL}');
-                }
-            `;
-            document.head.appendChild(customFontStyleElement);
-            
-            displayArea.style.fontFamily = FONT_FAMILY_NAME;
-            updateDisplayArea();
-        }
-
-        // テキスト色の自動調整
-        function updateTextColorAuto() {
-            // CSSカスタムプロパティを使用するため、特別な処理は不要
-        }
-
-        // OpenType機能の反映
-        function updateOpenTypeFeatures() {
-            let feat = activeOpenTypeFeatures.split(',')
-                .map(f => f.trim())
-                .filter(f => f)
-                .map(f => /^'.*'$/.test(f) ? f : `'${f}' 1`)
-                .join(',');
-            displayArea.style.fontFeatureSettings = feat;
-            displayArea.style.webkitFontFeatureSettings = feat;
-        }
-
-        // 3Dエフェクトの適用（プレーンテキストにCSSエフェクトのみ）
-        function apply3DEffect(effectType) {
-            current3DEffect = effectType;
-            
-            // 既存のエフェクトクラスを削除
-            displayArea.classList.remove('effect-3d-basic', 'effect-3d-neon', 'effect-3d-emboss', 'effect-3d-deep', 'effect-3d-glow');
-            
-            // 新しいエフェクトを適用
-            if (effectType !== 'none') {
-                displayArea.classList.add(`effect-3d-${effectType}`);
-            }
-            
-            // アクティブボタンの更新
-            document.querySelectorAll('.effect-btn').forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.dataset.effect === effectType) {
-                    btn.classList.add('active');
-                }
-            });
-        }
-
-        // Wikipedia記事読み込み
-        async function loadWikipediaText() {
-            wikiLoadingMsg.style.display = 'block';
-            try {
-                const wikiUrl = 'https://twitter-proxy.k-e034-twitter-proxy.workers.dev';
-                const res = await fetch(wikiUrl);
-                
-                if (!res.ok) {
-                    throw new Error(`HTTP ${res.status}: Wikipedia記事の取得に失敗しました`);
+                });
+                // テキスト入力から取得
+                if (openTypeInput.value.trim()) {
+                    const customFeatures = openTypeInput.value.split(',').map(f => f.trim()).filter(f => f);
+                    features.push(...customFeatures.map(f => `${f}`));
                 }
                 
-                const data = await res.json();
-                const title = data.title || '無題';
-                const extract = data.extract || data.content || data.text || 'コンテンツが見つかりませんでした';
+                const settings = features.join(', ');
+                displayArea.style.fontFeatureSettings = settings;
+            }
+            
+            /** contenteditableの入力内容を処理し、ルビ変換を行う */
+            function handleInput() {
+                isComposing = false;
+                const rawText = displayArea.innerText;
                 
-                displayArea.innerText = `${title}\n\n${extract}`;
-                updateDisplayArea();
-                wikiPanel.style.display = 'none';
+                // キャレット位置を保存
+                const selection = window.getSelection();
+                let caretPath = getCaretPath(displayArea, selection);
+
+                const html = aozoraToRubyHTML(rawText).replace(/\n/g, '<br>');
+                displayArea.innerHTML = html || '<p><br></p>'; // 空の場合でもpタグを維持
                 
-            } catch (e) {
-                console.error('Wikipedia記事の読み込みエラー:', e);
-                let errorMsg = 'Wikipedia記事の読み込みに失敗しました。';
-                if (e.name === 'TypeError' && e.message.includes('fetch')) {
-                    errorMsg += '\nネットワーク接続を確認してください。';
-                } else if (e.message.includes('HTTP')) {
-                    errorMsg += '\nサーバーエラーが発生しました。';
-                } else {
-                    errorMsg += `\n詳細: ${e.message}`;
-                }
-                alert(errorMsg);
-            } finally {
-                wikiLoadingMsg.style.display = 'none';
-            }
-        }
-
-        // 背景3Dグリッドの初期化
-        function initBgWaveGrid() {
-            const bg3dDiv = document.getElementById('bg3dCanvas');
-            
-            // 既存レンダラーの破棄
-            if (bgWaveRenderer && bgWaveRenderer.domElement.parentNode) {
-                bgWaveRenderer.domElement.parentNode.removeChild(bgWaveRenderer.domElement);
-            }
-            
-            bgWaveRenderer = new THREE.WebGLRenderer({alpha: true, antialias: true});
-            bgWaveRenderer.setClearColor(0x000000, 0);
-            bgWaveRenderer.setSize(window.innerWidth, window.innerHeight);
-            bg3dDiv.appendChild(bgWaveRenderer.domElement);
-            
-            bgWaveScene = new THREE.Scene();
-            
-            // グリッドサイズ
-            const pxPerUnit = 10;
-            const gridW = window.innerWidth / pxPerUnit;
-            const gridH = window.innerHeight / pxPerUnit;
-            const segW = 80, segH = 40;
-            
-            // カメラ設定
-            const left = -gridW/2, right = gridW/2, top = gridH/2, bottom = -gridH/2;
-            bgWaveCamera = new THREE.OrthographicCamera(left, right, top, bottom, 1, 1000);
-            bgWaveCamera.position.set(0, 180, 180);
-            bgWaveCamera.lookAt(0, 0, 0);
-            
-            // 波動グリッド生成
-            const geometry = new THREE.PlaneGeometry(gridW, gridH, segW, segH);
-            const material = new THREE.MeshPhongMaterial({
-                color: 0x00ffe7,
-                emissive: 0x003366,
-                shininess: 80,
-                side: THREE.DoubleSide,
-                wireframe: true,
-                transparent: true,
-                opacity: 0.7
-            });
-            bgWaveMesh = new THREE.Mesh(geometry, material);
-            bgWaveMesh.rotation.x = -Math.PI/2.1;
-            bgWaveScene.add(bgWaveMesh);
-            
-            // ライト
-            bgWaveScene.add(new THREE.AmbientLight(0xffffff, 0.7));
-            let dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
-            dirLight.position.set(0, 1, 2);
-            bgWaveScene.add(dirLight);
-            
-            // アニメーション開始
-            if (bgWaveAnimId) cancelAnimationFrame(bgWaveAnimId);
-            animateBgWave();
-        }
-
-        // 背景波動アニメーション
-        function animateBgWave() {
-            if (!bgWaveMesh || !bgWaveRenderer) return;
-            
-            let t = performance.now() / 1000;
-            let pos = bgWaveMesh.geometry.attributes.position;
-            
-            for (let i = 0; i < pos.count; i++) {
-                let ix = i % 81, iy = Math.floor(i / 81); // segW+1 = 81
-                pos.setZ(i, Math.sin(t * 1.2 + ix * 0.3 + iy * 0.5) * 2.2 + Math.cos(t * 0.7 + ix * 0.5 - iy * 0.2) * 1.2);
-            }
-            pos.needsUpdate = true;
-            bgWaveRenderer.render(bgWaveScene, bgWaveCamera);
-            bgWaveAnimId = requestAnimationFrame(animateBgWave);
-        }
-
-        // 背景リサイズ対応
-        function resizeBgWave() {
-            if (bgWaveRenderer) {
-                bgWaveRenderer.setSize(window.innerWidth, window.innerHeight);
-            }
-            initBgWaveGrid();
-        }
-
-        // テーマ切り替え時の背景色変更
-        function setBgWaveTheme(theme) {
-            if (bgWaveMesh) {
-                if (theme === 'theme-2') {
-                    bgWaveMesh.material.color.set('#444444');
-                } else if (theme === 'theme-3') {
-                    bgWaveMesh.material.color.set('#2e8b57');
-                } else {
-                    bgWaveMesh.material.color.set(0x00ffe7);
+                // キャレット位置を復元
+                if(caretPath) {
+                    setCaretPath(displayArea, selection, caretPath);
                 }
             }
-        }
-
-        // アプリケーション初期化
-        initializeApp();
-    });
+            
+            /** 青空文庫形式の文字列を<ruby>タグに変換する */
+            function aozoraToRubyHTML(text) {
+                // ｜漢字《かんじ》 と 漢字《かんじ》 の両方に対応
+                return text.replace(/｜([^《》]+)《([^》]+)》/g, '<ruby>$1<rt>$2</rt></ruby>')
+                           .replace(/([一-龯々]+)《([^》]+)》/g, '<ruby>$1<rt>$2</rt></ruby>');
+            }
+            
+            // --- キャレット位置の保存・復元（複雑なためヘルパー関数を使用） ---
+            function getCaretPath(root, selection) {
+                if (!selection.rangeCount) return null;
+                const range = selection.getRangeAt(0);
+                let node = range.startContainer;
+                const path = { offset: range.startOffset, path: [] };
+            
+                while (node !== root) {
+                    const parent = node.parentNode;
+                    path.path.unshift(Array.prototype.indexOf.call(parent.childNodes, node));
+                    node = parent;
+                }
+                return path;
+            }
+            
+            function setCaretPath(root, selection, caretPath) {
+                try {
+                    let node = root;
+                    caretPath.path.forEach(index => {
+                        node = node.childNodes[index];
+                    });
+            
+                    const range = document.createRange();
+                    // テキストノード以外の場合、オフセットが長さを超えることがあるため調整
+                    const offset = Math.min(caretPath.offset, node.textContent.length);
+                    range.setStart(node, offset);
+                    range.collapse(true);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                } catch(e) {
+                    console.warn("キャレット位置の復元に失敗しました:", e);
+                }
+            }
+        });
     </script>
 </body>
 </html>
+
