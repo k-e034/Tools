@@ -15,6 +15,7 @@
     :root {
         --font-size-base: clamp(24px, 5vw, 48px);
         --font-size-mobile: clamp(18px, 4vw, 32px);
+        --font-size-current: var(--font-size-base);
         --spacing-unit: 1rem;
         --border-radius: 16px;
         --transition-base: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -85,7 +86,7 @@
         border-radius: var(--border-radius);
         backdrop-filter: var(--backdrop-blur);
         box-shadow: var(--shadow-strong);
-        font-size: var(--font-size-base);
+        font-size: var(--font-size-current);
         line-height: 1.6;
         outline: none;
         overflow: auto;
@@ -212,6 +213,29 @@
         from {
             opacity: 0;
             transform: translateX(-50%) translateY(1rem);
+        }
+
+        // 文字サイズ調整機能
+        handleFontSizeChange() {
+            this.currentFontSize = parseInt(this.elements.fontSizeSlider.value);
+            this.updateFontSize();
+        }
+
+        adjustFontSize(delta) {
+            this.currentFontSize = Math.max(12, Math.min(120, this.currentFontSize + delta));
+            this.elements.fontSizeSlider.value = this.currentFontSize;
+            this.updateFontSize();
+        }
+
+        resetFontSize() {
+            this.currentFontSize = 40;
+            this.elements.fontSizeSlider.value = this.currentFontSize;
+            this.updateFontSize();
+        }
+
+        updateFontSize() {
+            document.documentElement.style.setProperty('--font-size-current', `${this.currentFontSize}px`);
+            this.elements.fontSizeDisplay.textContent = `${this.currentFontSize}px`;
         }
         to {
             opacity: 1;
@@ -389,10 +413,13 @@
 
     /* レスポンシブ対応 */
     @media (max-width: 768px) {
+        :root {
+            --font-size-current: var(--font-size-mobile);
+        }
+
         #displayArea {
             width: 95vw;
             padding: 1.5rem;
-            font-size: var(--font-size-mobile);
             max-height: 75vh;
         }
 
@@ -475,11 +502,29 @@
         <input type="file" id="fontFile" accept=".otf,.ttf,.woff,.woff2" aria-label="フォントファイル選択">
         📁
     </button>
+    <button class="toolbar-btn" id="fontSizeBtn" title="文字サイズを調整" aria-label="文字サイズを調整">📏</button>
     <button class="toolbar-btn" id="themeBtn" title="テーマを切り替え" aria-label="テーマを切り替え">🎨</button>
     <button class="toolbar-btn" id="writingModeBtn" title="縦書き/横書きを切り替え" aria-label="縦書き/横書きを切り替え">縦</button>
     <button class="toolbar-btn" id="opentypeBtn" title="OpenType機能を設定" aria-label="OpenType機能を設定">OT</button>
     <button class="toolbar-btn" id="threeDEffectBtn" title="3Dエフェクトを選択" aria-label="3Dエフェクトを選択">✨</button>
     <button class="toolbar-btn" id="wikiBtn" title="Wikipedia記事を読み込み" aria-label="Wikipedia記事を読み込み">📖</button>
+</div>
+
+<!-- 文字サイズ調整パネル -->
+<div id="fontSizePanel" class="control-panel" role="dialog" aria-labelledby="fontsize-header">
+    <div class="panel-header" id="fontsize-header">文字サイズ</div>
+    <div class="form-group">
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+            <button id="fontSizeDecrease" class="btn-primary" style="width: 40px; padding: 0.5rem;">−</button>
+            <input id="fontSizeSlider" type="range" min="12" max="120" value="40" 
+                   style="flex: 1; accent-color: var(--accent-primary);">
+            <button id="fontSizeIncrease" class="btn-primary" style="width: 40px; padding: 0.5rem;">+</button>
+        </div>
+        <div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
+            <span id="fontSizeDisplay">40px</span>
+        </div>
+    </div>
+    <button id="fontSizeReset" class="btn-primary" style="background: var(--bg-secondary); color: var(--text-primary);">デフォルトに戻す</button>
 </div>
 
 <!-- OpenType機能パネル -->
@@ -530,6 +575,8 @@
             this.current3DEffect = 'none';
             this.currentTheme = 0;
             this.themes = ['theme-dark', 'theme-warm', 'theme-nature'];
+            this.currentFontSize = 40;
+            this.shouldRestoreCaret = true;
             
             this.FONT_FAMILY_NAME = 'UserCustomFont';
             
@@ -543,6 +590,13 @@
                 displayArea: document.getElementById('displayArea'),
                 fontFile: document.getElementById('fontFile'),
                 fontFileBtn: document.getElementById('fontFileBtn'),
+                fontSizeBtn: document.getElementById('fontSizeBtn'),
+                fontSizePanel: document.getElementById('fontSizePanel'),
+                fontSizeSlider: document.getElementById('fontSizeSlider'),
+                fontSizeDisplay: document.getElementById('fontSizeDisplay'),
+                fontSizeIncrease: document.getElementById('fontSizeIncrease'),
+                fontSizeDecrease: document.getElementById('fontSizeDecrease'),
+                fontSizeReset: document.getElementById('fontSizeReset'),
                 themeBtn: document.getElementById('themeBtn'),
                 writingModeBtn: document.getElementById('writingModeBtn'),
                 opentypeBtn: document.getElementById('opentypeBtn'),
@@ -561,6 +615,13 @@
             // ファイル選択
             this.elements.fontFile.addEventListener('change', this.handleFontFileSelection.bind(this));
             this.elements.fontFileBtn.addEventListener('click', () => this.elements.fontFile.click());
+
+            // 文字サイズ調整
+            this.elements.fontSizeBtn.addEventListener('click', () => this.togglePanel(this.elements.fontSizePanel));
+            this.elements.fontSizeSlider.addEventListener('input', this.handleFontSizeChange.bind(this));
+            this.elements.fontSizeIncrease.addEventListener('click', () => this.adjustFontSize(4));
+            this.elements.fontSizeDecrease.addEventListener('click', () => this.adjustFontSize(-4));
+            this.elements.fontSizeReset.addEventListener('click', this.resetFontSize.bind(this));
 
             // テーマ切り替え
             this.elements.themeBtn.addEventListener('click', this.toggleTheme.bind(this));
@@ -617,11 +678,25 @@
             this.isVerticalWriting = !this.isVerticalWriting;
             this.elements.writingModeBtn.textContent = this.isVerticalWriting ? '横' : '縦';
             this.elements.writingModeBtn.classList.toggle('active', this.isVerticalWriting);
+            
+            // キャレット位置復元を無効化して書字方向を更新
+            this.shouldRestoreCaret = false;
             this.updateDisplayArea();
+            this.shouldRestoreCaret = true;
+            
+            // フォーカスを外してキーボードが出るのを防ぐ
+            this.elements.displayArea.blur();
+            
+            // モバイル対応：少し遅らせてフォーカスを完全に外す
+            setTimeout(() => {
+                if (document.activeElement === this.elements.displayArea) {
+                    document.activeElement.blur();
+                }
+            }, 100);
         }
 
         togglePanel(targetPanel) {
-            const panels = [this.elements.opentypePanel, this.elements.threeDEffectPanel, this.elements.wikiPanel];
+            const panels = [this.elements.fontSizePanel, this.elements.opentypePanel, this.elements.threeDEffectPanel, this.elements.wikiPanel];
             const isCurrentlyOpen = targetPanel.style.display === 'flex';
             
             // 全パネルを閉じる
@@ -634,7 +709,7 @@
         }
 
         handleOutsideClick(event) {
-            const panels = [this.elements.opentypePanel, this.elements.threeDEffectPanel, this.elements.wikiPanel];
+            const panels = [this.elements.fontSizePanel, this.elements.opentypePanel, this.elements.threeDEffectPanel, this.elements.wikiPanel];
             const toolbar = document.querySelector('.floating-toolbar');
             
             if (!toolbar.contains(event.target) && !panels.some(panel => panel.contains(event.target))) {
@@ -652,9 +727,19 @@
                 this.currentTheme = themeIndex;
             }
             
+            // Ctrl/Cmd + +/- で文字サイズ変更
+            if ((event.ctrlKey || event.metaKey) && (event.key === '+' || event.key === '=')) {
+                event.preventDefault();
+                this.adjustFontSize(4);
+            }
+            if ((event.ctrlKey || event.metaKey) && event.key === '-') {
+                event.preventDefault();
+                this.adjustFontSize(-4);
+            }
+            
             // Escキーでパネルを閉じる
             if (event.key === 'Escape') {
-                const panels = [this.elements.opentypePanel, this.elements.threeDEffectPanel, this.elements.wikiPanel];
+                const panels = [this.elements.fontSizePanel, this.elements.opentypePanel, this.elements.threeDEffectPanel, this.elements.wikiPanel];
                 panels.forEach(panel => panel.style.display = 'none');
             }
         }
@@ -663,7 +748,7 @@
             // キャレット位置保存
             const selection = window.getSelection();
             let caretOffset = 0;
-            if (selection.rangeCount > 0) {
+            if (this.shouldRestoreCaret && selection.rangeCount > 0) {
                 const range = selection.getRangeAt(0);
                 const preCaretRange = range.cloneRange();
                 preCaretRange.selectNodeContents(this.elements.displayArea);
@@ -677,8 +762,10 @@
             htmlContent = htmlContent.replace(/\n/g, '<br>');
             this.elements.displayArea.innerHTML = htmlContent || '';
 
-            // キャレット位置復元
-            this.setCaretByOffset(this.elements.displayArea, caretOffset);
+            // キャレット位置復元（書字方向切り替え時はスキップ）
+            if (this.shouldRestoreCaret && caretOffset > 0) {
+                this.setCaretByOffset(this.elements.displayArea, caretOffset);
+            }
 
             // 書字方向
             this.elements.displayArea.classList.toggle('vertical-rl', this.isVerticalWriting);
