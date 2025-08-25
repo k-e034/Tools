@@ -217,25 +217,32 @@
 
         // 文字サイズ調整機能
         handleFontSizeChange() {
+            if (!this.elements.fontSizeSlider) return;
             this.currentFontSize = parseInt(this.elements.fontSizeSlider.value);
             this.updateFontSize();
         }
 
         adjustFontSize(delta) {
             this.currentFontSize = Math.max(12, Math.min(120, this.currentFontSize + delta));
-            this.elements.fontSizeSlider.value = this.currentFontSize;
+            if (this.elements.fontSizeSlider) {
+                this.elements.fontSizeSlider.value = this.currentFontSize;
+            }
             this.updateFontSize();
         }
 
         resetFontSize() {
             this.currentFontSize = 40;
-            this.elements.fontSizeSlider.value = this.currentFontSize;
+            if (this.elements.fontSizeSlider) {
+                this.elements.fontSizeSlider.value = this.currentFontSize;
+            }
             this.updateFontSize();
         }
 
         updateFontSize() {
             document.documentElement.style.setProperty('--font-size-current', `${this.currentFontSize}px`);
-            this.elements.fontSizeDisplay.textContent = `${this.currentFontSize}px`;
+            if (this.elements.fontSizeDisplay) {
+                this.elements.fontSizeDisplay.textContent = `${this.currentFontSize}px`;
+            }
         }
         to {
             opacity: 1;
@@ -583,6 +590,7 @@
             this.initializeElements();
             this.setupEventListeners();
             this.updateDisplayArea();
+            this.updateFontSize(); // 初期フォントサイズを設定
         }
 
         initializeElements() {
@@ -609,51 +617,85 @@
                 loadWikipediaBtn: document.getElementById('loadWikipediaBtn'),
                 wikiLoadingMsg: document.getElementById('wikiLoadingMsg')
             };
+
+            // 要素の存在確認とエラーハンドリング
+            const missingElements = Object.keys(this.elements).filter(key => !this.elements[key]);
+            if (missingElements.length > 0) {
+                console.error('Missing elements:', missingElements);
+            }
         }
 
         setupEventListeners() {
             // ファイル選択
-            this.elements.fontFile.addEventListener('change', this.handleFontFileSelection.bind(this));
-            this.elements.fontFileBtn.addEventListener('click', () => this.elements.fontFile.click());
+            if (this.elements.fontFile && this.elements.fontFileBtn) {
+                this.elements.fontFile.addEventListener('change', this.handleFontFileSelection.bind(this));
+                this.elements.fontFileBtn.addEventListener('click', () => this.elements.fontFile.click());
+            }
 
             // 文字サイズ調整
-            this.elements.fontSizeBtn.addEventListener('click', () => this.togglePanel(this.elements.fontSizePanel));
-            this.elements.fontSizeSlider.addEventListener('input', this.handleFontSizeChange.bind(this));
-            this.elements.fontSizeIncrease.addEventListener('click', () => this.adjustFontSize(4));
-            this.elements.fontSizeDecrease.addEventListener('click', () => this.adjustFontSize(-4));
-            this.elements.fontSizeReset.addEventListener('click', this.resetFontSize.bind(this));
+            if (this.elements.fontSizeBtn) {
+                this.elements.fontSizeBtn.addEventListener('click', () => this.togglePanel(this.elements.fontSizePanel));
+            }
+            if (this.elements.fontSizeSlider) {
+                this.elements.fontSizeSlider.addEventListener('input', this.handleFontSizeChange.bind(this));
+            }
+            if (this.elements.fontSizeIncrease) {
+                this.elements.fontSizeIncrease.addEventListener('click', () => this.adjustFontSize(4));
+            }
+            if (this.elements.fontSizeDecrease) {
+                this.elements.fontSizeDecrease.addEventListener('click', () => this.adjustFontSize(-4));
+            }
+            if (this.elements.fontSizeReset) {
+                this.elements.fontSizeReset.addEventListener('click', this.resetFontSize.bind(this));
+            }
 
             // テーマ切り替え
-            this.elements.themeBtn.addEventListener('click', this.toggleTheme.bind(this));
+            if (this.elements.themeBtn) {
+                this.elements.themeBtn.addEventListener('click', this.toggleTheme.bind(this));
+            }
 
             // 書字方向切り替え
-            this.elements.writingModeBtn.addEventListener('click', this.toggleWritingMode.bind(this));
+            if (this.elements.writingModeBtn) {
+                this.elements.writingModeBtn.addEventListener('click', this.toggleWritingMode.bind(this));
+            }
 
             // OpenType機能
-            this.elements.opentypeBtn.addEventListener('click', () => this.togglePanel(this.elements.opentypePanel));
-            this.elements.opentypeInput.addEventListener('input', this.handleOpenTypeInput.bind(this));
+            if (this.elements.opentypeBtn) {
+                this.elements.opentypeBtn.addEventListener('click', () => this.togglePanel(this.elements.opentypePanel));
+            }
+            if (this.elements.opentypeInput) {
+                this.elements.opentypeInput.addEventListener('input', this.handleOpenTypeInput.bind(this));
+            }
 
             // 3Dエフェクト
-            this.elements.threeDEffectBtn.addEventListener('click', () => this.togglePanel(this.elements.threeDEffectPanel));
+            if (this.elements.threeDEffectBtn) {
+                this.elements.threeDEffectBtn.addEventListener('click', () => this.togglePanel(this.elements.threeDEffectPanel));
+            }
             document.querySelectorAll('.effect-btn').forEach(btn => {
                 btn.addEventListener('click', () => this.apply3DEffect(btn.dataset.effect));
             });
 
             // Wikipedia
-            this.elements.wikiBtn.addEventListener('click', () => this.togglePanel(this.elements.wikiPanel));
-            this.elements.loadWikipediaBtn.addEventListener('click', this.loadWikipediaText.bind(this));
+            if (this.elements.wikiBtn) {
+                this.elements.wikiBtn.addEventListener('click', () => this.togglePanel(this.elements.wikiPanel));
+            }
+            if (this.elements.loadWikipediaBtn) {
+                this.elements.loadWikipediaBtn.addEventListener('click', this.loadWikipediaText.bind(this));
+            }
 
             // テキスト編集
-            this.elements.displayArea.addEventListener('compositionstart', () => { this.isComposing = true; });
-            this.elements.displayArea.addEventListener('compositionend', () => {
-                this.isComposing = false;
-                this.updateDisplayArea();
-            });
-            this.elements.displayArea.addEventListener('input', () => {
-                if (!this.isComposing) {
+            if (this.elements.displayArea) {
+                this.elements.displayArea.addEventListener('compositionstart', () => { this.isComposing = true; });
+                this.elements.displayArea.addEventListener('compositionend', () => {
+                    this.isComposing = false;
                     this.updateDisplayArea();
-                }
-            });
+                });
+                this.elements.displayArea.addEventListener('input', () => {
+                    if (!this.isComposing) {
+                        this.updateDisplayArea();
+                    }
+                });
+            }
 
             // パネル外クリックで閉じる
             document.addEventListener('click', this.handleOutsideClick.bind(this));
@@ -696,7 +738,9 @@
         }
 
         togglePanel(targetPanel) {
-            const panels = [this.elements.fontSizePanel, this.elements.opentypePanel, this.elements.threeDEffectPanel, this.elements.wikiPanel];
+            if (!targetPanel) return;
+            
+            const panels = [this.elements.fontSizePanel, this.elements.opentypePanel, this.elements.threeDEffectPanel, this.elements.wikiPanel].filter(panel => panel);
             const isCurrentlyOpen = targetPanel.style.display === 'flex';
             
             // 全パネルを閉じる
@@ -709,10 +753,10 @@
         }
 
         handleOutsideClick(event) {
-            const panels = [this.elements.fontSizePanel, this.elements.opentypePanel, this.elements.threeDEffectPanel, this.elements.wikiPanel];
+            const panels = [this.elements.fontSizePanel, this.elements.opentypePanel, this.elements.threeDEffectPanel, this.elements.wikiPanel].filter(panel => panel);
             const toolbar = document.querySelector('.floating-toolbar');
             
-            if (!toolbar.contains(event.target) && !panels.some(panel => panel.contains(event.target))) {
+            if (toolbar && !toolbar.contains(event.target) && !panels.some(panel => panel.contains(event.target))) {
                 panels.forEach(panel => panel.style.display = 'none');
             }
         }
@@ -739,7 +783,7 @@
             
             // Escキーでパネルを閉じる
             if (event.key === 'Escape') {
-                const panels = [this.elements.fontSizePanel, this.elements.opentypePanel, this.elements.threeDEffectPanel, this.elements.wikiPanel];
+                const panels = [this.elements.fontSizePanel, this.elements.opentypePanel, this.elements.threeDEffectPanel, this.elements.wikiPanel].filter(panel => panel);
                 panels.forEach(panel => panel.style.display = 'none');
             }
         }
