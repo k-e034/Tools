@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iOS中国語フォント調査ツール</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1em;
+            text-align: center;
+            line-height: 1.6;
+        }
+        
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .control-group label {
+            font-weight: 600;
+            color: #2c3e50;
+            min-width: 120px;
+        }
+        
+        input, select, textarea {
+            padding: 12px 15px;
+            border: 2px solid #e0e6ed;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+            width: 100%;
+            font-family: monospace;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .analysis-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .analysis-card h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .font-sample {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .font-name {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .font-text {
+            font-size: 32px;
+            line-height: 1.4;
+            margin-bottom: 10px;
+        }
+        
+        .font-info {
+            font-size: 12px;
+            color: #6c757d;
+            border-top: 1px solid #dee2e6;
+            padding-top: 10px;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .comparison-table th,
+        .comparison-table td {
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        
+        .comparison-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .comparison-table .char-cell {
+            font-size: 40px;
+            line-height: 1;
+        }
+        
+        .unicode-info {
+            background: #e8f4f8;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        .status {
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .preset-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        .preset-button {
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+            font-size: 14px;
+            padding: 8px 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .control-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .control-group label {
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 iOS中国語フォント調査ツール</h1>
+            <p>PingFang-HK vs PingFang-MO の詳細分析 - iOS 18の新機能を探る</p>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>フォントサイズ:</label>
+                <input type="range" id="fontSize" min="16" max="80" value="32">
+                <span id="fontSizeValue">32px</span>
+            </div>
+            
+            <div class="control-group">
+                <label>調査対象文字:</label>
+                <textarea id="testText" placeholder="調査したい中国語文字を入力してください">香港澳門繁體字漢字測試</textarea>
+            </div>
+            
+            <div class="preset-buttons">
+                <button class="preset-button" onclick="loadPreset('traditional')">繁体字セット</button>
+                <button class="preset-button" onclick="loadPreset('variants')">異体字セット</button>
+                <button class="preset-button" onclick="loadPreset('punctuation')">句読点セット</button>
+                <button class="preset-button" onclick="loadPreset('numbers')">数字・記号</button>
+                <button class="preset-button" onclick="loadPreset('special')">特殊文字</button>
+            </div>
+            
+            <button onclick="analyzeSystemFonts()">🔍 システムフォント分析</button>
+            <button onclick="detectFontSupport()">📋 フォント対応確認</button>
+            <button onclick="generateUnicodeReport()">📊 Unicode分析</button>
+        </div>
+        
+        <div id="systemStatus" class="status info" style="display: none;"></div>
+        
+        <div class="analysis-grid">
+            <div class="analysis-card">
+                <h3>🎯 フォント検出結果</h3>
+                <div id="fontDetection">
+                    <p>「フォント対応確認」ボタンをクリックして開始してください。</p>
+                </div>
+            </div>
+            
+            <div class="analysis-card">
+                <h3>📝 文字表示テスト</h3>
+                <div id="fontComparison">
+                    <p>文字を入力して「システムフォント分析」をクリックしてください。</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="analysis-grid">
+            <div class="analysis-card">
+                <h3>🔍 詳細比較表</h3>
+                <div id="detailedComparison">
+                    <p>文字分析結果がここに表示されます。</p>
+                </div>
+            </div>
+            
+            <div class="analysis-card">
+                <h3>📊 Unicode詳細情報</h3>
+                <div id="unicodeAnalysis">
+                    <p>Unicode分析結果がここに表示されます。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // フォントサイズスライダーの制御
+        const fontSizeSlider = document.getElementById('fontSize');
+        const fontSizeValue = document.getElementById('fontSizeValue');
+        
+        fontSizeSlider.addEventListener('input', function() {
+            fontSizeValue.textContent = this.value + 'px';
+            updateFontSizes(this.value);
+        });
+        
+        function updateFontSizes(size) {
+            const fontTexts = document.querySelectorAll('.font-text');
+            fontTexts.forEach(el => {
+                el.style.fontSize = size + 'px';
+            });
+            
+            const charCells = document.querySelectorAll('.char-cell');
+            charCells.forEach(el => {
+                el.style.fontSize = Math.max(20, size * 0.8) + 'px';
+            });
+        }
+        
+        // プリセット文字セット
+        const presets = {
+            traditional: '香港澳門繁體字漢字測試實驗檢查確認驗證',
+            variants: '体體户戶为為历歷万萬开開过過车車',
+            punctuation: '，。？！；：「」『』（）【】',
+            numbers: '０１２３４５６７８９〇一二三四五六七八九十',
+            special: '€£¥₩₡₨₱₦₪₫₹₵₡₨₱₦₪'
+        };
+        
+        function loadPreset(type) {
+            document.getElementById('testText').value = presets[type];
+        }
+        
+        // システムフォント検出
+        function detectFontSupport() {
+            showStatus('フォント検出を実行中...', 'info');
+            
+            const fonts = [
+                'PingFang TC',
+                'PingFang HK',
+                'PingFang MO',
+                'PingFang SC',
+                'Hiragino Sans GB',
+                'Heiti TC',
+                'Heiti SC',
+                'STHeiti',
+                'Microsoft YaHei',
+                'SimHei',
+                'SimSun'
+            ];
+            
+            const detectionResults = [];
+            
+            fonts.forEach(font => {
+                const isSupported = checkFontSupport(font);
+                const details = getFontDetails(font);
+                detectionResults.push({
+                    name: font,
+                    supported: isSupported,
+                    details: details
+                });
+            });
+            
+            displayFontDetection(detectionResults);
+            hideStatus();
+        }
+        
+        function checkFontSupport(fontName) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            // 基準フォントでのテキスト幅
+            context.font = '72px monospace';
+            const baseWidth = context.measureText('測試').width;
+            
+            // テストフォントでのテキスト幅
+            context.font = `72px "${fontName}", monospace`;
+            const testWidth = context.measureText('測試').width;
+            
+            return baseWidth !== testWidth;
+        }
+        
+        function getFontDetails(fontName) {
+            // ユーザーエージェントとプラットフォーム情報を取得
+            const userAgent = navigator.userAgent;
+            const platform = navigator.platform;
+            const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+            const isMac = platform.indexOf('Mac') > -1;
+            
+            return {
+                platform: platform,
+                userAgent: userAgent,
+                isIOS: isIOS,
+                isMac: isMac,
+                expectedSupport: getExpectedSupport(fontName, isIOS, isMac)
+            };
+        }
+        
+        function getExpectedSupport(fontName, isIOS, isMac) {
+            const supportMatrix = {
+                'PingFang TC': isIOS || isMac,
+                'PingFang HK': isIOS || isMac,
+                'PingFang MO': isIOS, // iOS 18以降でサポート予定
+                'PingFang SC': isIOS || isMac,
+                'Hiragino Sans GB': isMac,
+                'Heiti TC': isIOS || isMac,
+                'Heiti SC': isIOS || isMac
+            };
+            
+            return supportMatrix[fontName] || false;
+        }
+        
+        function displayFontDetection(results) {
+            const container = document.getElementById('fontDetection');
+            let html = '<div class="font-detection-results">';
+            
+            results.forEach(result => {
+                const statusIcon = result.supported ? '✅' : '❌';
+                const statusText = result.supported ? 'サポート済み' : '未対応';
+                const expectedIcon = result.details.expectedSupport ? '📱' : '🖥️';
+                
+                html += `
+                    <div class="font-sample">
+                        <div class="font-name">
+                            ${statusIcon} ${result.name} - ${statusText}
+                            ${expectedIcon} ${result.details.platform}
+                        </div>
+                        <div class="font-text" style="font-family: '${result.name}', sans-serif;">
+                            香港澳門測試 - 繁體字檢測
+                        </div>
+                        <div class="font-info">
+                            予想サポート: ${result.details.expectedSupport ? 'あり' : 'なし'} | 
+                            iOS: ${result.details.isIOS ? 'Yes' : 'No'} | 
+                            Mac: ${result.details.isMac ? 'Yes' : 'No'}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+        
+        // フォント比較分析
+        function analyzeSystemFonts() {
+            const testText = document.getElementById('testText').value;
+            if (!testText.trim()) {
+                alert('調査対象文字を入力してください。');
+                return;
+            }
+            
+            showStatus('フォント比較分析を実行中...', 'info');
+            
+            const targetFonts = [
+                'PingFang TC',
+                'PingFang HK', 
+                'PingFang MO',
+                'PingFang SC'
+            ];
+            
+            displayFontComparison(testText, targetFonts);
+            generateDetailedComparison(testText, targetFonts);
+            hideStatus();
+        }
+        
+        function displayFontComparison(text, fonts) {
+            const container = document.getElementById('fontComparison');
+            const fontSize = document.getElementById('fontSize').value;
+            
+            let html = '';
+            
+            fonts.forEach(font => {
+                html += `
+                    <div class="font-sample">
+                        <div class="font-name">${font}</div>
+                        <div class="font-text" style="font-family: '${font}', sans-serif; font-size: ${fontSize}px;">
+                            ${text}
+                        </div>
+                        <div class="font-info">
+                            レンダリング品質: ${analyzeFontRendering(text, font)}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function analyzeFontRendering(text, fontFamily) {
+            // 文字の描画品質を分析（簡易版）
+            const canvas = document.createElement('canvas');
+            canvas.width = 200;
+            canvas.height = 100;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.font = `48px "${fontFamily}", sans-serif`;
+            ctx.fillStyle = '#000';
+            ctx.textAlign = 'center';
+            ctx.fillText(text.substring(0, 2), 100, 60);
+            
+            // 画像データを分析してフォントの存在を確認
+            const imageData = ctx.getImageData(0, 0, 200, 100);
+            const pixels = imageData.data;
+            let nonWhitePixels = 0;
+            
+            for (let i = 0; i < pixels.length; i += 4) {
+                const r = pixels[i];
+                const g = pixels[i + 1];
+                const b = pixels[i + 2];
+                if (r < 250 || g < 250 || b < 250) {
+                    nonWhitePixels++;
+                }
+            }
+            
+            if (nonWhitePixels > 100) {
+                return '良好 ✅';
+            } else {
+                return 'フォールバック可能性 ⚠️';
+            }
+        }
+        
+        function generateDetailedComparison(text, fonts) {
+            const container = document.getElementById('detailedComparison');
+            const characters = Array.from(text);
+            
+            let html = '<table class="comparison-table"><thead><tr><th>文字</th>';
+            fonts.forEach(font => {
+                html += `<th>${font}</th>`;
+            });
+            html += '<th>Unicode</th></tr></thead><tbody>';
+            
+            characters.forEach(char => {
+                if (char.trim() === '') return;
+                
+                html += `<tr><td class="char-cell">${char}</td>`;
+                fonts.forEach(font => {
+                    html += `<td class="char-cell" style="font-family: '${font}', sans-serif;">${char}</td>`;
+                });
+                
+                const codePoint = char.codePointAt(0);
+                const unicodeHex = 'U+' + codePoint.toString(16).toUpperCase().padStart(4, '0');
+                html += `<td style="font-family: monospace; font-size: 12px;">${unicodeHex}</td>`;
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+        
+        // Unicode分析
+        function generateUnicodeReport() {
+            const testText = document.getElementById('testText').value;
+            if (!testText.trim()) {
+                alert('調査対象文字を入力してください。');
+                return;
+            }
+            
+            showStatus('Unicode分析を実行中...', 'info');
+            
+            const characters = Array.from(testText);
+            const unicodeInfo = [];
+            
+            characters.forEach(char => {
+                if (char.trim() === '') return;
+                
+                const codePoint = char.codePointAt(0);
+                const category = getUnicodeCategory(codePoint);
+                const block = getUnicodeBlock(codePoint);
+                const script = getUnicodeScript(codePoint);
+                
+                unicodeInfo.push({
+                    char: char,
+                    codePoint: codePoint,
+                    hex: 'U+' + codePoint.toString(16).toUpperCase().padStart(4, '0'),
+                    category: category,
+                    block: block,
+                    script: script
+                });
+            });
+            
+            displayUnicodeAnalysis(unicodeInfo);
+            hideStatus();
+        }
+        
+        function getUnicodeCategory(codePoint) {
+            // 簡化されたUnicodeカテゴリ判定
+            if (codePoint >= 0x4E00 && codePoint <= 0x9FFF) return 'CJK統合漢字';
+            if (codePoint >= 0x3400 && codePoint <= 0x4DBF) return 'CJK拡張A';
+            if (codePoint >= 0x20000 && codePoint <= 0x2A6DF) return 'CJK拡張B';
+            if (codePoint >= 0x3000 && codePoint <= 0x303F) return 'CJK記号';
+            if (codePoint >= 0xFF00 && codePoint <= 0xFFEF) return '全角形';
+            return '其他';
+        }
+        
+        function getUnicodeBlock(codePoint) {
+            // 簡化されたUnicodeブロック判定
+            if (codePoint >= 0x4E00 && codePoint <= 0x9FFF) return 'CJK Unified Ideographs';
+            if (codePoint >= 0x3400 && codePoint <= 0x4DBF) return 'CJK Extension A';
+            if (codePoint >= 0x20000 && codePoint <= 0x2A6DF) return 'CJK Extension B';
+            if (codePoint >= 0x3000 && codePoint <= 0x303F) return 'CJK Symbols and Punctuation';
+            return 'Other';
+        }
+        
+        function getUnicodeScript(codePoint) {
+            // 簡化されたスクリプト判定
+            if (codePoint >= 0x4E00 && codePoint <= 0x9FFF) return 'Han';
+            if (codePoint >= 0x3400 && codePoint <= 0x4DBF) return 'Han';
+            if (codePoint >= 0x20000 && codePoint <= 0x2A6DF) return 'Han';
+            return 'Common';
+        }
+        
+        function displayUnicodeAnalysis(unicodeInfo) {
+            const container = document.getElementById('unicodeAnalysis');
+            
+            let html = '<div class="unicode-info">';
+            html += '<h4>📊 Unicode統計情報</h4>';
+            html += `<p>総文字数: ${unicodeInfo.length}</p>`;
+            
+            // カテゴリ別統計
+            const categories = {};
+            unicodeInfo.forEach(info => {
+                categories[info.category] = (categories[info.category] || 0) + 1;
+            });
+            
+            html += '<h5>カテゴリ別分布:</h5><ul>';
+            Object.entries(categories).forEach(([category, count]) => {
+                html += `<li>${category}: ${count}文字</li>`;
+            });
+            html += '</ul>';
+            
+            html += '<h4>📝 詳細情報</h4>';
+            html += '<table class="comparison-table"><thead><tr>';
+            html += '<th>文字</th><th>Unicode</th><th>カテゴリ</th><th>ブロック</th><th>スクリプト</th>';
+            html += '</tr></thead><tbody>';
+            
+            unicodeInfo.forEach(info => {
+                html += `<tr>
+                    <td class="char-cell">${info.char}</td>
+                    <td style="font-family: monospace;">${info.hex}</td>
+                    <td>${info.category}</td>
+                    <td>${info.block}</td>
+                    <td>${info.script}</td>
+                </tr>`;
+            });
+            
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }
+        
+        function showStatus(message, type) {
+            const status = document.getElementById('systemStatus');
+            status.className = `status ${type}`;
+            status.textContent = message;
+            status.style.display = 'block';
+        }
+        
+        function hideStatus() {
+            setTimeout(() => {
+                document.getElementById('systemStatus').style.display = 'none';
+            }, 2000);
+        }
+        
+        // ページロード時の初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            showStatus('iOS中国語フォント調査ツールが初期化されました。調査を開始してください。', 'info');
+            
+            // 初期フォント検出を実行
+            detectFontSupport();
+        });
+    </script>
+</body>
+</html>
