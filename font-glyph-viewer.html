@@ -8,39 +8,12 @@
     <script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: system-ui, -apple-system, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
-        }
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
+        body { font-family: system-ui, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
         .header h1 { font-size: 2.5em; margin-bottom: 10px; }
-        .upload-area {
-            margin: 40px;
-            padding: 60px;
-            border: 3px dashed #667eea;
-            border-radius: 15px;
-            text-align: center;
-            background: #f8f9ff;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
+        .upload-area { margin: 40px; padding: 60px; border: 3px dashed #667eea; border-radius: 15px; text-align: center; background: #f8f9ff; cursor: pointer; transition: all 0.3s; }
         .upload-area:hover { background: #f0f2ff; }
-        .upload-area.dragover { background: #e8ebff; transform: scale(1.02); }
         #fileInput { display: none; }
         .loading { text-align: center; padding: 40px; color: #667eea; display: none; }
         .loading.active { display: block; }
@@ -48,15 +21,7 @@
         .info-panel.active { display: block; }
         .info-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #e0e0e0; }
         .info-label { font-weight: 600; color: #667eea; }
-        .stats {
-            display: flex;
-            justify-content: space-around;
-            margin: 20px 40px;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 10px;
-            display: none;
-        }
+        .stats { display: flex; justify-content: space-around; margin: 20px 40px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; display: none; }
         .stats.active { display: flex; }
         .stat-item { text-align: center; color: white; }
         .stat-number { font-size: 2.5em; font-weight: bold; }
@@ -66,104 +31,31 @@
         .control-group label { display: block; font-weight: 600; color: #667eea; margin-bottom: 8px; }
         .control-group input[type="range"] { width: 100%; }
         .control-group input[type="text"] { width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 5px; }
-        .glyph-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 15px;
-            margin: 20px 40px 40px;
-            display: none;
-        }
+        .glyph-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 15px; margin: 20px 40px 40px; display: none; }
         .glyph-grid.active { display: grid; }
-        .glyph-card {
-            background: white;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
+        .glyph-card { background: white; border: 2px solid #e0e0e0; border-radius: 10px; padding: 15px; text-align: center; cursor: pointer; transition: all 0.3s; }
         .glyph-card:hover { border-color: #667eea; transform: translateY(-5px); }
         .glyph-display { height: 80px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
         .glyph-info { font-size: 0.8em; color: #666; border-top: 1px solid #e0e0e0; padding-top: 8px; }
         .glyph-unicode { font-weight: 600; color: #667eea; }
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.8);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
         .modal-overlay.active { display: flex; }
-        .modal-content {
-            background: white;
-            border-radius: 20px;
-            max-width: 900px;
-            width: 100%;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-        .modal-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 25px 30px;
-            border-radius: 20px 20px 0 0;
-            display: flex;
-            justify-content: space-between;
-        }
-        .modal-close {
-            background: rgba(255,255,255,0.2);
-            border: none;
-            color: white;
-            font-size: 2em;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-        }
+        .modal-content { background: white; border-radius: 20px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; }
+        .modal-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px 30px; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; }
+        .modal-close { background: rgba(255,255,255,0.2); border: none; color: white; font-size: 2em; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; }
         .modal-body { padding: 30px; }
-        .glyph-detail-display {
-            background: #f8f9ff;
-            border-radius: 10px;
-            padding: 40px;
-            margin-bottom: 25px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 400px;
-        }
+        .glyph-detail-display { background: #f8f9ff; border-radius: 10px; padding: 40px; margin-bottom: 25px; display: flex; align-items: center; justify-content: center; min-height: 400px; }
         .glyph-canvas { border: 2px solid #e0e0e0; background: white; border-radius: 5px; }
         .modal-controls { background: white; border: 2px solid #e0e0e0; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
-        .checkbox-label {
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            font-weight: 600;
-            color: #667eea;
-        }
+        .checkbox-label { display: flex; align-items: center; cursor: pointer; font-weight: 600; color: #667eea; }
         .checkbox-label input { width: 20px; height: 20px; margin-right: 10px; }
-        .metrics-legend {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px;
-            margin-top: 15px;
-            padding: 15px;
-            background: #f8f9ff;
-            border-radius: 8px;
-        }
+        .metrics-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 15px; padding: 15px; background: #f8f9ff; border-radius: 8px; }
         .legend-item { display: flex; align-items: center; font-size: 0.9em; }
         .legend-color { width: 20px; height: 20px; border-radius: 3px; margin-right: 8px; }
-        .modal-info {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-        }
+        .modal-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
         .modal-info-item { background: #f8f9ff; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea; }
         .modal-info-label { font-size: 0.85em; color: #666; margin-bottom: 5px; }
-        .modal-info-value { font-size: 1.2em; font-weight: 600; color: #333; }
+        .modal-info-value { font-size: 1.2em; font-weight: 600; color: #333; word-break: break-word; }
     </style>
 </head>
 <body>
@@ -172,278 +64,177 @@
             <h1>🔤 フォントグリフビューア</h1>
             <p>cmapテーブルを参照して全グリフを表示</p>
         </div>
-
-```
-    <div class="upload-area" id="uploadArea">
-        <div style="font-size: 4em; margin-bottom: 20px;">📁</div>
-        <h2 style="color: #667eea;">フォントファイルをドロップまたはクリック</h2>
-        <p style="color: #666;">TTF、OTF、WOFFファイルに対応</p>
-    </div>
-    <input type="file" id="fileInput" accept=".ttf,.otf,.woff,.woff2">
-
-    <div class="loading" id="loading">📊 フォントを解析中...</div>
-
-    <div class="info-panel" id="infoPanel">
-        <h3 style="color: #667eea; margin-bottom: 15px;">📋 フォント情報</h3>
-        <div id="fontInfo"></div>
-    </div>
-
-    <div class="stats" id="stats">
-        <div class="stat-item">
-            <div class="stat-number" id="totalGlyphs">0</div>
-            <div style="font-size: 0.9em;">総グリフ数</div>
+        <div class="upload-area" id="uploadArea">
+            <div style="font-size: 4em; margin-bottom: 20px;">📁</div>
+            <h2 style="color: #667eea;">フォントファイルをドロップまたはクリック</h2>
+            <p style="color: #666;">TTF、OTF、WOFFファイルに対応</p>
         </div>
-        <div class="stat-item">
-            <div class="stat-number" id="unicodeGlyphs">0</div>
-            <div style="font-size: 0.9em;">Unicode対応</div>
+        <input type="file" id="fileInput" accept=".ttf,.otf,.woff,.woff2">
+        <div class="loading" id="loading">📊 フォントを解析中...</div>
+        <div class="info-panel" id="infoPanel">
+            <h3 style="color: #667eea; margin-bottom: 15px;">📋 フォント情報</h3>
+            <div id="fontInfo"></div>
         </div>
-    </div>
-
-    <div class="controls" id="controls">
-        <div class="control-group">
-            <label>グリフサイズ: <span id="sizeValue">48px</span></label>
-            <input type="range" id="glyphSize" min="24" max="128" value="48" step="4">
-        </div>
-        <div class="control-group">
-            <label>検索 (Unicode、グリフ名)</label>
-            <input type="text" id="searchBox" placeholder="例: U+0041, A, circle">
-        </div>
-    </div>
-
-    <div class="glyph-grid" id="glyphGrid"></div>
-</div>
-
-<div class="modal-overlay" id="modalOverlay">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2 id="modalTitle">グリフ詳細</h2>
-            <button class="modal-close" id="modalClose">×</button>
-        </div>
-        <div class="modal-body">
-            <div class="glyph-detail-display">
-                <canvas id="glyphCanvas" class="glyph-canvas"></canvas>
+        <div class="stats" id="stats">
+            <div class="stat-item">
+                <div class="stat-number" id="totalGlyphs">0</div>
+                <div style="font-size: 0.9em;">総グリフ数</div>
             </div>
-            
-            <div class="modal-controls">
-                <label class="checkbox-label">
-                    <input type="checkbox" id="metricsMode">
-                    メトリクスモード（制御点とアウトライン表示）
-                </label>
-                <div id="metricsLegend" style="display:none;">
-                    <div class="metrics-legend">
-                        <div class="legend-item">
-                            <div class="legend-color" style="background:#333;"></div>
-                            <span>アウトライン</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color" style="background:#ff4444;"></div>
-                            <span>始点</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color" style="background:#4444ff;"></div>
-                            <span>制御点</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color" style="background:#44ff44;"></div>
-                            <span>オンカーブ点</span>
+            <div class="stat-item">
+                <div class="stat-number" id="unicodeGlyphs">0</div>
+                <div style="font-size: 0.9em;">Unicode対応</div>
+            </div>
+        </div>
+        <div class="controls" id="controls">
+            <div class="control-group">
+                <label>グリフサイズ: <span id="sizeValue">48px</span></label>
+                <input type="range" id="glyphSize" min="24" max="128" value="48" step="4">
+            </div>
+            <div class="control-group">
+                <label>検索 (Unicode、グリフ名)</label>
+                <input type="text" id="searchBox" placeholder="例: U+0041, A, circle">
+            </div>
+        </div>
+        <div class="glyph-grid" id="glyphGrid"></div>
+    </div>
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">グリフ詳細</h2>
+                <button class="modal-close" id="modalClose">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="glyph-detail-display">
+                    <canvas id="glyphCanvas" class="glyph-canvas"></canvas>
+                </div>
+                <div class="modal-controls">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="metricsMode">
+                        メトリクスモード（制御点とアウトライン表示）
+                    </label>
+                    <div id="metricsLegend" style="display:none;">
+                        <div class="metrics-legend">
+                            <div class="legend-item"><div class="legend-color" style="background:#333;"></div><span>アウトライン</span></div>
+                            <div class="legend-item"><div class="legend-color" style="background:#ff4444;"></div><span>始点</span></div>
+                            <div class="legend-item"><div class="legend-color" style="background:#4444ff;"></div><span>制御点</span></div>
+                            <div class="legend-item"><div class="legend-color" style="background:#44ff44;"></div><span>オンカーブ点</span></div>
                         </div>
                     </div>
+                    <div style="margin-top:15px;">
+                        <label style="display:block;font-weight:600;color:#667eea;margin-bottom:8px;">表示サイズ: <span id="modalSizeValue">256px</span></label>
+                        <input type="range" id="modalGlyphSize" min="128" max="512" value="256" step="16" style="width:100%;">
+                    </div>
                 </div>
-                <div style="margin-top:15px;">
-                    <label style="display:block;font-weight:600;color:#667eea;margin-bottom:8px;">
-                        表示サイズ: <span id="modalSizeValue">256px</span>
-                    </label>
-                    <input type="range" id="modalGlyphSize" min="128" max="512" value="256" step="16" style="width:100%;">
-                </div>
+                <div class="modal-info" id="modalInfo"></div>
             </div>
-
-            <div class="modal-info" id="modalInfo"></div>
         </div>
     </div>
-</div>
+    <script>
+        var currentFont = null, allGlyphs = [], filteredGlyphs = [], currentGlyphData = null;
+        var uploadArea = document.getElementById('uploadArea'), fileInput = document.getElementById('fileInput');
+        var loading = document.getElementById('loading'), infoPanel = document.getElementById('infoPanel');
+        var stats = document.getElementById('stats'), controls = document.getElementById('controls');
+        var glyphGrid = document.getElementById('glyphGrid'), glyphSize = document.getElementById('glyphSize');
+        var searchBox = document.getElementById('searchBox'), modalOverlay = document.getElementById('modalOverlay');
+        var modalClose = document.getElementById('modalClose'), glyphCanvas = document.getElementById('glyphCanvas');
+        var metricsMode = document.getElementById('metricsMode'), modalGlyphSize = document.getElementById('modalGlyphSize');
+        var metricsLegend = document.getElementById('metricsLegend');
 
-<script>
-    var currentFont = null;
-    var allGlyphs = [];
-    var filteredGlyphs = [];
-    var currentGlyphData = null;
-
-    var uploadArea = document.getElementById('uploadArea');
-    var fileInput = document.getElementById('fileInput');
-    var loading = document.getElementById('loading');
-    var infoPanel = document.getElementById('infoPanel');
-    var stats = document.getElementById('stats');
-    var controls = document.getElementById('controls');
-    var glyphGrid = document.getElementById('glyphGrid');
-    var glyphSize = document.getElementById('glyphSize');
-    var searchBox = document.getElementById('searchBox');
-    var modalOverlay = document.getElementById('modalOverlay');
-    var modalClose = document.getElementById('modalClose');
-    var glyphCanvas = document.getElementById('glyphCanvas');
-    var metricsMode = document.getElementById('metricsMode');
-    var modalGlyphSize = document.getElementById('modalGlyphSize');
-    var metricsLegend = document.getElementById('metricsLegend');
-
+```
     uploadArea.onclick = function() { fileInput.click(); };
     uploadArea.ondragover = function(e) { e.preventDefault(); uploadArea.classList.add('dragover'); };
     uploadArea.ondragleave = function() { uploadArea.classList.remove('dragover'); };
-    uploadArea.ondrop = function(e) {
-        e.preventDefault();
-        uploadArea.classList.remove('dragover');
-        if (e.dataTransfer.files[0]) loadFont(e.dataTransfer.files[0]);
-    };
-    fileInput.onchange = function(e) {
-        if (e.target.files[0]) loadFont(e.target.files[0]);
-    };
+    uploadArea.ondrop = function(e) { e.preventDefault(); uploadArea.classList.remove('dragover'); if (e.dataTransfer.files[0]) loadFont(e.dataTransfer.files[0]); };
+    fileInput.onchange = function(e) { if (e.target.files[0]) loadFont(e.target.files[0]); };
 
     function loadFont(file) {
-        loading.classList.add('active');
-        uploadArea.style.display = 'none';
-        
+        loading.classList.add('active'); uploadArea.style.display = 'none';
         var reader = new FileReader();
         reader.onload = function(e) {
             try {
                 currentFont = opentype.parse(e.target.result);
-                displayFontInfo();
-                extractGlyphs();
-                displayGlyphs();
+                console.log('Font:', currentFont, 'Ascender:', currentFont.ascender, 'Descender:', currentFont.descender);
+                displayFontInfo(); extractGlyphs(); displayGlyphs();
                 loading.classList.remove('active');
-                infoPanel.classList.add('active');
-                stats.classList.add('active');
-                controls.classList.add('active');
-                glyphGrid.classList.add('active');
-            } catch (error) {
-                alert('エラー: ' + error.message);
-                loading.classList.remove('active');
-                uploadArea.style.display = 'block';
-            }
+                [infoPanel, stats, controls, glyphGrid].forEach(function(el) { el.classList.add('active'); });
+            } catch (error) { alert('エラー: ' + error.message); console.error(error); loading.classList.remove('active'); uploadArea.style.display = 'block'; }
         };
         reader.readAsArrayBuffer(file);
     }
 
     function displayFontInfo() {
-        var names = currentFont.names;
-        var html = '';
+        var names = currentFont.names, html = '';
         html += '<div class="info-item"><span class="info-label">フォント名</span><span>' + (names.fullName ? names.fullName.en || names.fullName : 'N/A') + '</span></div>';
         html += '<div class="info-item"><span class="info-label">グリフ数</span><span>' + currentFont.numGlyphs + '</span></div>';
         html += '<div class="info-item"><span class="info-label">Units per EM</span><span>' + currentFont.unitsPerEm + '</span></div>';
+        html += '<div class="info-item"><span class="info-label">Ascender</span><span>' + currentFont.ascender + '</span></div>';
+        html += '<div class="info-item"><span class="info-label">Descender</span><span>' + currentFont.descender + '</span></div>';
         document.getElementById('fontInfo').innerHTML = html;
     }
 
     function extractGlyphs() {
-        allGlyphs = [];
-        var glyphIndexMap = {};
-        
+        allGlyphs = []; var glyphIndexMap = {};
         if (currentFont.tables.cmap && currentFont.tables.cmap.glyphIndexMap) {
             for (var code in currentFont.tables.cmap.glyphIndexMap) {
-                var idx = currentFont.tables.cmap.glyphIndexMap[code];
-                glyphIndexMap[idx] = parseInt(code);
+                glyphIndexMap[currentFont.tables.cmap.glyphIndexMap[code]] = parseInt(code);
             }
         }
-
         for (var i = 0; i < currentFont.numGlyphs; i++) {
-            var glyph = currentFont.glyphs.get(i);
-            var unicode = glyphIndexMap[i];
-            allGlyphs.push({
-                index: i,
-                glyph: glyph,
-                unicode: unicode,
+            var glyph = currentFont.glyphs.get(i), unicode = glyphIndexMap[i];
+            allGlyphs.push({ index: i, glyph: glyph, unicode: unicode,
                 unicodeHex: unicode ? 'U+' + unicode.toString(16).toUpperCase().padStart(4, '0') : 'N/A',
-                char: unicode ? String.fromCharCode(unicode) : '',
-                name: glyph.name || 'glyph' + i
-            });
+                char: unicode ? String.fromCharCode(unicode) : '', name: glyph.name || 'glyph' + i });
         }
-
         filteredGlyphs = allGlyphs.slice();
         document.getElementById('totalGlyphs').textContent = allGlyphs.length;
         document.getElementById('unicodeGlyphs').textContent = allGlyphs.filter(function(g) { return g.unicode; }).length;
     }
 
     function displayGlyphs() {
-        var size = parseInt(glyphSize.value);
-        document.getElementById('sizeValue').textContent = size + 'px';
-        var html = '';
-        
+        var size = parseInt(glyphSize.value); document.getElementById('sizeValue').textContent = size + 'px';
+        var html = '', unitsPerEm = currentFont.unitsPerEm, ascender = currentFont.ascender, descender = currentFont.descender, scale = size / unitsPerEm;
         for (var i = 0; i < filteredGlyphs.length; i++) {
-            var item = filteredGlyphs[i];
-            var path = item.glyph.getPath(0, 0, size);
-            var svg = path.toSVG(2);
-            var bbox = item.glyph.getBoundingBox();
-            var scale = size / currentFont.unitsPerEm;
-            var viewWidth = (bbox.x2 - bbox.x1) * scale || size;
-            var viewHeight = (bbox.y2 - bbox.y1) * scale || size;
-
-            html += '<div class="glyph-card" data-idx="' + i + '">';
-            html += '<div class="glyph-display">';
-            html += '<svg width="' + size + '" height="' + size + '" viewBox="' + (bbox.x1*scale) + ' ' + (-bbox.y2*scale) + ' ' + viewWidth + ' ' + viewHeight + '">' + svg + '</svg>';
-            html += '</div>';
-            html += '<div class="glyph-info">';
-            html += '<div class="glyph-unicode">' + item.unicodeHex + '</div>';
-            html += '<div>' + (item.char || item.name) + '</div>';
-            html += '</div></div>';
+            var item = filteredGlyphs[i], path = item.glyph.getPath(0, 0, size), svg = path.toSVG(2);
+            var viewBoxX = 0, viewBoxY = -ascender * scale, viewBoxWidth = unitsPerEm * scale, viewBoxHeight = (ascender - descender) * scale;
+            html += '<div class="glyph-card" data-idx="' + i + '"><div class="glyph-display">';
+            html += '<svg width="' + size + '" height="' + size + '" viewBox="' + viewBoxX + ' ' + viewBoxY + ' ' + viewBoxWidth + ' ' + viewBoxHeight + '">' + svg + '</svg>';
+            html += '</div><div class="glyph-info"><div class="glyph-unicode">' + item.unicodeHex + '</div><div>' + (item.char || item.name) + '</div></div></div>';
         }
         glyphGrid.innerHTML = html;
-
-        var cards = document.querySelectorAll('.glyph-card');
-        for (var i = 0; i < cards.length; i++) {
-            cards[i].onclick = function() {
-                openGlyphModal(filteredGlyphs[parseInt(this.getAttribute('data-idx'))]);
-            };
-        }
+        document.querySelectorAll('.glyph-card').forEach(function(card) {
+            card.onclick = function() { openGlyphModal(filteredGlyphs[parseInt(this.getAttribute('data-idx'))]); };
+        });
     }
 
     function openGlyphModal(glyphData) {
         currentGlyphData = glyphData;
         document.getElementById('modalTitle').textContent = glyphData.unicodeHex + ' - ' + glyphData.name;
-        
-        var bbox = glyphData.glyph.getBoundingBox();
-        var html = '';
+        var bbox = glyphData.glyph.getBoundingBox(), html = '';
         html += '<div class="modal-info-item"><div class="modal-info-label">Unicode</div><div class="modal-info-value">' + glyphData.unicodeHex + '</div></div>';
         html += '<div class="modal-info-item"><div class="modal-info-label">グリフ名</div><div class="modal-info-value">' + glyphData.name + '</div></div>';
         html += '<div class="modal-info-item"><div class="modal-info-label">インデックス</div><div class="modal-info-value">' + glyphData.index + '</div></div>';
         html += '<div class="modal-info-item"><div class="modal-info-label">幅</div><div class="modal-info-value">' + (glyphData.glyph.advanceWidth || 0) + '</div></div>';
+        html += '<div class="modal-info-item"><div class="modal-info-label">BBox</div><div class="modal-info-value">' + bbox.x1.toFixed(0) + ',' + bbox.y1.toFixed(0) + ' → ' + bbox.x2.toFixed(0) + ',' + bbox.y2.toFixed(0) + '</div></div>';
         document.getElementById('modalInfo').innerHTML = html;
-        
-        drawGlyphOnCanvas();
-        modalOverlay.classList.add('active');
+        drawGlyphOnCanvas(); modalOverlay.classList.add('active');
     }
 
     function drawGlyphOnCanvas() {
         if (!currentGlyphData) return;
-        
-        var size = parseInt(modalGlyphSize.value);
-        document.getElementById('modalSizeValue').textContent = size + 'px';
-        
-        var glyph = currentGlyphData.glyph;
-        var bbox = glyph.getBoundingBox();
-        var scale = size / currentFont.unitsPerEm;
-        var padding = 50;
-        
-        glyphCanvas.width = Math.max((bbox.x2-bbox.x1)*scale + padding*2, size);
-        glyphCanvas.height = Math.max((bbox.y2-bbox.y1)*scale + padding*2, size);
-        
-        var ctx = glyphCanvas.getContext('2d');
-        ctx.clearRect(0, 0, glyphCanvas.width, glyphCanvas.height);
-        
-        var offsetX = (glyphCanvas.width - (bbox.x2-bbox.x1)*scale) / 2 - bbox.x1*scale;
-        var offsetY = (glyphCanvas.height + (bbox.y2-bbox.y1)*scale) / 2 + bbox.y1*scale;
-        
-        if (metricsMode.checked) {
-            drawWithMetrics(ctx, glyph, offsetX, offsetY, scale);
-            metricsLegend.style.display = 'block';
-        } else {
-            drawSimple(ctx, glyph, offsetX, offsetY, scale);
-            metricsLegend.style.display = 'none';
-        }
+        var size = parseInt(modalGlyphSize.value); document.getElementById('modalSizeValue').textContent = size + 'px';
+        var glyph = currentGlyphData.glyph, unitsPerEm = currentFont.unitsPerEm, ascender = currentFont.ascender, descender = currentFont.descender, scale = size / unitsPerEm;
+        var padding = 100, canvasWidth = unitsPerEm * scale + padding * 2, canvasHeight = (ascender - descender) * scale + padding * 2;
+        glyphCanvas.width = canvasWidth; glyphCanvas.height = canvasHeight;
+        var ctx = glyphCanvas.getContext('2d'); ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        var offsetX = padding, offsetY = padding;
+        if (metricsMode.checked) { drawWithMetrics(ctx, glyph, offsetX, offsetY, scale, ascender); metricsLegend.style.display = 'block'; }
+        else { drawSimple(ctx, glyph, offsetX, offsetY, scale, ascender); metricsLegend.style.display = 'none'; }
     }
 
-    function drawSimple(ctx, glyph, offsetX, offsetY, scale) {
+    function drawSimple(ctx, glyph, offsetX, offsetY, scale, ascender) {
         var path = glyph.getPath(0, 0, currentFont.unitsPerEm);
-        ctx.save();
-        ctx.translate(offsetX, offsetY);
-        ctx.scale(scale, -scale);
-        ctx.fillStyle = '#333';
-        ctx.beginPath();
+        ctx.save(); ctx.translate(offsetX, offsetY); ctx.scale(scale, scale); ctx.translate(0, ascender); ctx.scale(1, -1);
+        ctx.fillStyle = '#333'; ctx.beginPath();
         for (var i = 0; i < path.commands.length; i++) {
             var cmd = path.commands[i];
             if (cmd.type === 'M') ctx.moveTo(cmd.x, cmd.y);
@@ -452,82 +243,38 @@
             else if (cmd.type === 'C') ctx.bezierCurveTo(cmd.x1, cmd.y1, cmd.x2, cmd.y2, cmd.x, cmd.y);
             else if (cmd.type === 'Z') ctx.closePath();
         }
-        ctx.fill();
-        ctx.restore();
+        ctx.fill(); ctx.restore();
     }
 
-    function drawWithMetrics(ctx, glyph, offsetX, offsetY, scale) {
+    function drawWithMetrics(ctx, glyph, offsetX, offsetY, scale, ascender) {
         var path = glyph.getPath(0, 0, currentFont.unitsPerEm);
-        ctx.save();
-        ctx.translate(offsetX, offsetY);
-        ctx.scale(scale, -scale);
-        
-        ctx.strokeStyle = '#333';
-        ctx.lineWidth = 2/scale;
-        ctx.beginPath();
-        
-        var points = [];
-        var controlPoints = [];
-        var lastPoint = null;
-        
+        ctx.save(); ctx.translate(offsetX, offsetY); ctx.scale(scale, scale); ctx.translate(0, ascender); ctx.scale(1, -1);
+        ctx.strokeStyle = '#333'; ctx.lineWidth = 2 / scale; ctx.beginPath();
+        var points = [], controlPoints = [], lastPoint = null;
         for (var i = 0; i < path.commands.length; i++) {
             var cmd = path.commands[i];
-            if (cmd.type === 'M') {
-                ctx.moveTo(cmd.x, cmd.y);
-                points.push({x:cmd.x, y:cmd.y, type:'start'});
-                lastPoint = {x:cmd.x, y:cmd.y};
-            } else if (cmd.type === 'L') {
-                ctx.lineTo(cmd.x, cmd.y);
-                points.push({x:cmd.x, y:cmd.y, type:'line'});
-                lastPoint = {x:cmd.x, y:cmd.y};
-            } else if (cmd.type === 'Q') {
-                ctx.quadraticCurveTo(cmd.x1, cmd.y1, cmd.x, cmd.y);
-                controlPoints.push({x:cmd.x1, y:cmd.y1, from:lastPoint, to:{x:cmd.x, y:cmd.y}});
-                points.push({x:cmd.x, y:cmd.y, type:'curve'});
-                lastPoint = {x:cmd.x, y:cmd.y};
-            } else if (cmd.type === 'C') {
-                ctx.bezierCurveTo(cmd.x1, cmd.y1, cmd.x2, cmd.y2, cmd.x, cmd.y);
-                controlPoints.push({x:cmd.x1, y:cmd.y1, from:lastPoint});
-                controlPoints.push({x:cmd.x2, y:cmd.y2, to:{x:cmd.x, y:cmd.y}});
-                points.push({x:cmd.x, y:cmd.y, type:'curve'});
-                lastPoint = {x:cmd.x, y:cmd.y};
-            } else if (cmd.type === 'Z') {
-                ctx.closePath();
-            }
+            if (cmd.type === 'M') { ctx.moveTo(cmd.x, cmd.y); points.push({x:cmd.x, y:cmd.y, type:'start'}); lastPoint = {x:cmd.x, y:cmd.y}; }
+            else if (cmd.type === 'L') { ctx.lineTo(cmd.x, cmd.y); points.push({x:cmd.x, y:cmd.y, type:'line'}); lastPoint = {x:cmd.x, y:cmd.y}; }
+            else if (cmd.type === 'Q') { ctx.quadraticCurveTo(cmd.x1, cmd.y1, cmd.x, cmd.y); controlPoints.push({x:cmd.x1, y:cmd.y1, from:lastPoint, to:{x:cmd.x, y:cmd.y}}); points.push({x:cmd.x, y:cmd.y, type:'curve'}); lastPoint = {x:cmd.x, y:cmd.y}; }
+            else if (cmd.type === 'C') { ctx.bezierCurveTo(cmd.x1, cmd.y1, cmd.x2, cmd.y2, cmd.x, cmd.y); controlPoints.push({x:cmd.x1, y:cmd.y1, from:lastPoint}); controlPoints.push({x:cmd.x2, y:cmd.y2, to:{x:cmd.x, y:cmd.y}}); points.push({x:cmd.x, y:cmd.y, type:'curve'}); lastPoint = {x:cmd.x, y:cmd.y}; }
+            else if (cmd.type === 'Z') ctx.closePath();
         }
-        ctx.stroke();
-        
-        ctx.strokeStyle = '#aaa';
-        ctx.lineWidth = 1/scale;
-        ctx.setLineDash([5/scale, 5/scale]);
+        ctx.stroke(); ctx.strokeStyle = '#aaa'; ctx.lineWidth = 1 / scale; ctx.setLineDash([5/scale, 5/scale]);
         for (var i = 0; i < controlPoints.length; i++) {
-            var cp = controlPoints[i];
-            ctx.beginPath();
+            var cp = controlPoints[i]; ctx.beginPath();
             if (cp.from) { ctx.moveTo(cp.from.x, cp.from.y); ctx.lineTo(cp.x, cp.y); }
             if (cp.to) { ctx.moveTo(cp.x, cp.y); ctx.lineTo(cp.to.x, cp.to.y); }
             ctx.stroke();
         }
         ctx.setLineDash([]);
-        
         for (var i = 0; i < controlPoints.length; i++) {
-            ctx.fillStyle = '#4444ff';
-            ctx.beginPath();
-            ctx.arc(controlPoints[i].x, controlPoints[i].y, 5/scale, 0, Math.PI*2);
-            ctx.fill();
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 2/scale;
-            ctx.stroke();
+            ctx.fillStyle = '#4444ff'; ctx.beginPath(); ctx.arc(controlPoints[i].x, controlPoints[i].y, 5/scale, 0, Math.PI*2);
+            ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2/scale; ctx.stroke();
         }
-        
         for (var i = 0; i < points.length; i++) {
-            var p = points[i];
-            ctx.fillStyle = p.type === 'start' ? '#ff4444' : '#44ff44';
-            ctx.beginPath();
+            var p = points[i]; ctx.fillStyle = p.type === 'start' ? '#ff4444' : '#44ff44'; ctx.beginPath();
             ctx.arc(p.x, p.y, (p.type === 'start' ? 6 : 5)/scale, 0, Math.PI*2);
-            ctx.fill();
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 2/scale;
-            ctx.stroke();
+            ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2/scale; ctx.stroke();
         }
         ctx.restore();
     }
@@ -536,9 +283,7 @@
     searchBox.oninput = function(e) {
         var query = e.target.value.toLowerCase();
         filteredGlyphs = query ? allGlyphs.filter(function(item) {
-            return item.unicodeHex.toLowerCase().indexOf(query) >= 0 ||
-                   item.name.toLowerCase().indexOf(query) >= 0 ||
-                   item.char.indexOf(query) >= 0;
+            return item.unicodeHex.toLowerCase().indexOf(query) >= 0 || item.name.toLowerCase().indexOf(query) >= 0 || item.char.indexOf(query) >= 0;
         }) : allGlyphs.slice();
         displayGlyphs();
     };
@@ -546,9 +291,7 @@
     modalOverlay.onclick = function(e) { if (e.target === modalOverlay) modalOverlay.classList.remove('active'); };
     metricsMode.onchange = drawGlyphOnCanvas;
     modalGlyphSize.oninput = drawGlyphOnCanvas;
-    document.onkeydown = function(e) {
-        if (e.key === 'Escape' && modalOverlay.classList.contains('active')) modalOverlay.classList.remove('active');
-    };
+    document.onkeydown = function(e) { if (e.key === 'Escape' && modalOverlay.classList.contains('active')) modalOverlay.classList.remove('active'); };
 </script>
 ```
 
