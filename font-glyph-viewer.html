@@ -13,9 +13,10 @@
         .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
         .header h1 { font-size: 2.5em; margin-bottom: 10px; }
         .upload-area { margin: 40px; padding: 60px; border: 3px dashed #667eea; border-radius: 15px; text-align: center; background: #f8f9ff; cursor: pointer; transition: all 0.3s; }
-        .upload-area:hover { background: #f0f2ff; }
+        .upload-area:hover { background: #f0f2ff; border-color: #764ba2; }
+        .upload-area.dragover { background: #e8ebff; transform: scale(1.02); border-color: #764ba2; }
         #fileInput { display: none; }
-        .loading { text-align: center; padding: 40px; color: #667eea; display: none; }
+        .loading { text-align: center; padding: 40px; color: #667eea; display: none; font-size: 1.2em; }
         .loading.active { display: block; }
         .info-panel { margin: 20px 40px; padding: 25px; background: #f8f9ff; border-radius: 10px; display: none; }
         .info-panel.active { display: block; }
@@ -34,21 +35,22 @@
         .glyph-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 15px; margin: 20px 40px 40px; display: none; }
         .glyph-grid.active { display: grid; }
         .glyph-card { background: white; border: 2px solid #e0e0e0; border-radius: 10px; padding: 15px; text-align: center; cursor: pointer; transition: all 0.3s; }
-        .glyph-card:hover { border-color: #667eea; transform: translateY(-5px); }
+        .glyph-card:hover { border-color: #667eea; transform: translateY(-5px); box-shadow: 0 5px 15px rgba(102,126,234,0.3); }
         .glyph-display { height: 80px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
         .glyph-info { font-size: 0.8em; color: #666; border-top: 1px solid #e0e0e0; padding-top: 8px; }
         .glyph-unicode { font-weight: 600; color: #667eea; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
         .modal-overlay.active { display: flex; }
         .modal-content { background: white; border-radius: 20px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; }
-        .modal-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px 30px; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; }
-        .modal-close { background: rgba(255,255,255,0.2); border: none; color: white; font-size: 2em; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; }
+        .modal-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px 30px; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; align-items: center; }
+        .modal-close { background: rgba(255,255,255,0.2); border: none; color: white; font-size: 2em; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; transition: all 0.3s; }
+        .modal-close:hover { background: rgba(255,255,255,0.3); transform: rotate(90deg); }
         .modal-body { padding: 30px; }
         .glyph-detail-display { background: #f8f9ff; border-radius: 10px; padding: 40px; margin-bottom: 25px; display: flex; align-items: center; justify-content: center; min-height: 400px; }
         .glyph-canvas { border: 2px solid #e0e0e0; background: white; border-radius: 5px; }
         .modal-controls { background: white; border: 2px solid #e0e0e0; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
         .checkbox-label { display: flex; align-items: center; cursor: pointer; font-weight: 600; color: #667eea; }
-        .checkbox-label input { width: 20px; height: 20px; margin-right: 10px; }
+        .checkbox-label input { width: 20px; height: 20px; margin-right: 10px; cursor: pointer; }
         .metrics-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 15px; padding: 15px; background: #f8f9ff; border-radius: 8px; }
         .legend-item { display: flex; align-items: center; font-size: 0.9em; }
         .legend-color { width: 20px; height: 20px; border-radius: 3px; margin-right: 8px; }
@@ -66,7 +68,7 @@
         </div>
         <div class="upload-area" id="uploadArea">
             <div style="font-size: 4em; margin-bottom: 20px;">📁</div>
-            <h2 style="color: #667eea;">フォントファイルをドロップまたはクリック</h2>
+            <h2 style="color: #667eea; margin-bottom: 10px;">フォントファイルをドロップまたはクリック</h2>
             <p style="color: #666;">TTF、OTF、WOFFファイルに対応</p>
         </div>
         <input type="file" id="fileInput" accept=".ttf,.otf,.woff,.woff2">
@@ -130,40 +132,114 @@
         </div>
     </div>
     <script>
-        var currentFont = null, allGlyphs = [], filteredGlyphs = [], currentGlyphData = null;
-        var uploadArea = document.getElementById('uploadArea'), fileInput = document.getElementById('fileInput');
-        var loading = document.getElementById('loading'), infoPanel = document.getElementById('infoPanel');
-        var stats = document.getElementById('stats'), controls = document.getElementById('controls');
-        var glyphGrid = document.getElementById('glyphGrid'), glyphSize = document.getElementById('glyphSize');
-        var searchBox = document.getElementById('searchBox'), modalOverlay = document.getElementById('modalOverlay');
-        var modalClose = document.getElementById('modalClose'), glyphCanvas = document.getElementById('glyphCanvas');
-        var metricsMode = document.getElementById('metricsMode'), modalGlyphSize = document.getElementById('modalGlyphSize');
-        var metricsLegend = document.getElementById('metricsLegend');
+        var currentFont = null;
+        var allGlyphs = [];
+        var filteredGlyphs = [];
+        var currentGlyphData = null;
 
 ```
-    uploadArea.onclick = function() { fileInput.click(); };
-    uploadArea.ondragover = function(e) { e.preventDefault(); uploadArea.classList.add('dragover'); };
-    uploadArea.ondragleave = function() { uploadArea.classList.remove('dragover'); };
-    uploadArea.ondrop = function(e) { e.preventDefault(); uploadArea.classList.remove('dragover'); if (e.dataTransfer.files[0]) loadFont(e.dataTransfer.files[0]); };
-    fileInput.onchange = function(e) { if (e.target.files[0]) loadFont(e.target.files[0]); };
+    var uploadArea = document.getElementById('uploadArea');
+    var fileInput = document.getElementById('fileInput');
+    var loading = document.getElementById('loading');
+    var infoPanel = document.getElementById('infoPanel');
+    var stats = document.getElementById('stats');
+    var controls = document.getElementById('controls');
+    var glyphGrid = document.getElementById('glyphGrid');
+    var glyphSize = document.getElementById('glyphSize');
+    var searchBox = document.getElementById('searchBox');
+    var modalOverlay = document.getElementById('modalOverlay');
+    var modalClose = document.getElementById('modalClose');
+    var glyphCanvas = document.getElementById('glyphCanvas');
+    var metricsMode = document.getElementById('metricsMode');
+    var modalGlyphSize = document.getElementById('modalGlyphSize');
+    var metricsLegend = document.getElementById('metricsLegend');
+
+    // アップロードエリアのクリックイベント
+    uploadArea.addEventListener('click', function() {
+        console.log('Upload area clicked');
+        fileInput.click();
+    });
+
+    // ドラッグ&ドロップイベント
+    uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadArea.classList.remove('dragover');
+        console.log('File dropped');
+        var files = e.dataTransfer.files;
+        if (files.length > 0) {
+            loadFont(files[0]);
+        }
+    });
+
+    // ファイル選択イベント
+    fileInput.addEventListener('change', function(e) {
+        console.log('File input changed');
+        var files = e.target.files;
+        if (files.length > 0) {
+            loadFont(files[0]);
+        }
+    });
 
     function loadFont(file) {
-        loading.classList.add('active'); uploadArea.style.display = 'none';
+        console.log('Loading font:', file.name, file.size, 'bytes');
+        loading.classList.add('active');
+        uploadArea.style.display = 'none';
+        
         var reader = new FileReader();
+        
+        reader.onerror = function(e) {
+            console.error('FileReader error:', e);
+            alert('ファイルの読み込みに失敗しました');
+            loading.classList.remove('active');
+            uploadArea.style.display = 'block';
+        };
+        
         reader.onload = function(e) {
+            console.log('File loaded, parsing...');
             try {
                 currentFont = opentype.parse(e.target.result);
-                console.log('Font:', currentFont, 'Ascender:', currentFont.ascender, 'Descender:', currentFont.descender);
-                displayFontInfo(); extractGlyphs(); displayGlyphs();
+                console.log('Font parsed successfully');
+                console.log('Ascender:', currentFont.ascender);
+                console.log('Descender:', currentFont.descender);
+                console.log('Units per EM:', currentFont.unitsPerEm);
+                console.log('Num glyphs:', currentFont.numGlyphs);
+                
+                displayFontInfo();
+                extractGlyphs();
+                displayGlyphs();
+                
                 loading.classList.remove('active');
-                [infoPanel, stats, controls, glyphGrid].forEach(function(el) { el.classList.add('active'); });
-            } catch (error) { alert('エラー: ' + error.message); console.error(error); loading.classList.remove('active'); uploadArea.style.display = 'block'; }
+                infoPanel.classList.add('active');
+                stats.classList.add('active');
+                controls.classList.add('active');
+                glyphGrid.classList.add('active');
+            } catch (error) {
+                console.error('Parse error:', error);
+                alert('フォントの解析に失敗しました: ' + error.message);
+                loading.classList.remove('active');
+                uploadArea.style.display = 'block';
+            }
         };
+        
         reader.readAsArrayBuffer(file);
     }
 
     function displayFontInfo() {
-        var names = currentFont.names, html = '';
+        var names = currentFont.names;
+        var html = '';
         html += '<div class="info-item"><span class="info-label">フォント名</span><span>' + (names.fullName ? names.fullName.en || names.fullName : 'N/A') + '</span></div>';
         html += '<div class="info-item"><span class="info-label">グリフ数</span><span>' + currentFont.numGlyphs + '</span></div>';
         html += '<div class="info-item"><span class="info-label">Units per EM</span><span>' + currentFont.unitsPerEm + '</span></div>';
@@ -173,68 +249,133 @@
     }
 
     function extractGlyphs() {
-        allGlyphs = []; var glyphIndexMap = {};
+        allGlyphs = [];
+        var glyphIndexMap = {};
+        
         if (currentFont.tables.cmap && currentFont.tables.cmap.glyphIndexMap) {
             for (var code in currentFont.tables.cmap.glyphIndexMap) {
-                glyphIndexMap[currentFont.tables.cmap.glyphIndexMap[code]] = parseInt(code);
+                var idx = currentFont.tables.cmap.glyphIndexMap[code];
+                glyphIndexMap[idx] = parseInt(code);
             }
         }
+
         for (var i = 0; i < currentFont.numGlyphs; i++) {
-            var glyph = currentFont.glyphs.get(i), unicode = glyphIndexMap[i];
-            allGlyphs.push({ index: i, glyph: glyph, unicode: unicode,
+            var glyph = currentFont.glyphs.get(i);
+            var unicode = glyphIndexMap[i];
+            allGlyphs.push({
+                index: i,
+                glyph: glyph,
+                unicode: unicode,
                 unicodeHex: unicode ? 'U+' + unicode.toString(16).toUpperCase().padStart(4, '0') : 'N/A',
-                char: unicode ? String.fromCharCode(unicode) : '', name: glyph.name || 'glyph' + i });
+                char: unicode ? String.fromCharCode(unicode) : '',
+                name: glyph.name || 'glyph' + i
+            });
         }
+
         filteredGlyphs = allGlyphs.slice();
         document.getElementById('totalGlyphs').textContent = allGlyphs.length;
         document.getElementById('unicodeGlyphs').textContent = allGlyphs.filter(function(g) { return g.unicode; }).length;
     }
 
     function displayGlyphs() {
-        var size = parseInt(glyphSize.value); document.getElementById('sizeValue').textContent = size + 'px';
-        var html = '', unitsPerEm = currentFont.unitsPerEm, ascender = currentFont.ascender, descender = currentFont.descender, scale = size / unitsPerEm;
+        var size = parseInt(glyphSize.value);
+        document.getElementById('sizeValue').textContent = size + 'px';
+        var html = '';
+        
+        var unitsPerEm = currentFont.unitsPerEm;
+        var ascender = currentFont.ascender;
+        var descender = currentFont.descender;
+        var scale = size / unitsPerEm;
+        
         for (var i = 0; i < filteredGlyphs.length; i++) {
-            var item = filteredGlyphs[i], path = item.glyph.getPath(0, 0, size), svg = path.toSVG(2);
-            var viewBoxX = 0, viewBoxY = -ascender * scale, viewBoxWidth = unitsPerEm * scale, viewBoxHeight = (ascender - descender) * scale;
-            html += '<div class="glyph-card" data-idx="' + i + '"><div class="glyph-display">';
+            var item = filteredGlyphs[i];
+            var path = item.glyph.getPath(0, 0, size);
+            var svg = path.toSVG(2);
+            
+            var viewBoxX = 0;
+            var viewBoxY = -ascender * scale;
+            var viewBoxWidth = unitsPerEm * scale;
+            var viewBoxHeight = (ascender - descender) * scale;
+
+            html += '<div class="glyph-card" data-idx="' + i + '">';
+            html += '<div class="glyph-display">';
             html += '<svg width="' + size + '" height="' + size + '" viewBox="' + viewBoxX + ' ' + viewBoxY + ' ' + viewBoxWidth + ' ' + viewBoxHeight + '">' + svg + '</svg>';
-            html += '</div><div class="glyph-info"><div class="glyph-unicode">' + item.unicodeHex + '</div><div>' + (item.char || item.name) + '</div></div></div>';
+            html += '</div>';
+            html += '<div class="glyph-info">';
+            html += '<div class="glyph-unicode">' + item.unicodeHex + '</div>';
+            html += '<div>' + (item.char || item.name) + '</div>';
+            html += '</div></div>';
         }
         glyphGrid.innerHTML = html;
-        document.querySelectorAll('.glyph-card').forEach(function(card) {
-            card.onclick = function() { openGlyphModal(filteredGlyphs[parseInt(this.getAttribute('data-idx'))]); };
-        });
+
+        var cards = document.querySelectorAll('.glyph-card');
+        for (var i = 0; i < cards.length; i++) {
+            cards[i].onclick = function() {
+                openGlyphModal(filteredGlyphs[parseInt(this.getAttribute('data-idx'))]);
+            };
+        }
     }
 
     function openGlyphModal(glyphData) {
         currentGlyphData = glyphData;
         document.getElementById('modalTitle').textContent = glyphData.unicodeHex + ' - ' + glyphData.name;
-        var bbox = glyphData.glyph.getBoundingBox(), html = '';
+        
+        var bbox = glyphData.glyph.getBoundingBox();
+        var html = '';
         html += '<div class="modal-info-item"><div class="modal-info-label">Unicode</div><div class="modal-info-value">' + glyphData.unicodeHex + '</div></div>';
         html += '<div class="modal-info-item"><div class="modal-info-label">グリフ名</div><div class="modal-info-value">' + glyphData.name + '</div></div>';
         html += '<div class="modal-info-item"><div class="modal-info-label">インデックス</div><div class="modal-info-value">' + glyphData.index + '</div></div>';
         html += '<div class="modal-info-item"><div class="modal-info-label">幅</div><div class="modal-info-value">' + (glyphData.glyph.advanceWidth || 0) + '</div></div>';
         html += '<div class="modal-info-item"><div class="modal-info-label">BBox</div><div class="modal-info-value">' + bbox.x1.toFixed(0) + ',' + bbox.y1.toFixed(0) + ' → ' + bbox.x2.toFixed(0) + ',' + bbox.y2.toFixed(0) + '</div></div>';
         document.getElementById('modalInfo').innerHTML = html;
-        drawGlyphOnCanvas(); modalOverlay.classList.add('active');
+        
+        drawGlyphOnCanvas();
+        modalOverlay.classList.add('active');
     }
 
     function drawGlyphOnCanvas() {
         if (!currentGlyphData) return;
-        var size = parseInt(modalGlyphSize.value); document.getElementById('modalSizeValue').textContent = size + 'px';
-        var glyph = currentGlyphData.glyph, unitsPerEm = currentFont.unitsPerEm, ascender = currentFont.ascender, descender = currentFont.descender, scale = size / unitsPerEm;
-        var padding = 100, canvasWidth = unitsPerEm * scale + padding * 2, canvasHeight = (ascender - descender) * scale + padding * 2;
-        glyphCanvas.width = canvasWidth; glyphCanvas.height = canvasHeight;
-        var ctx = glyphCanvas.getContext('2d'); ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-        var offsetX = padding, offsetY = padding;
-        if (metricsMode.checked) { drawWithMetrics(ctx, glyph, offsetX, offsetY, scale, ascender); metricsLegend.style.display = 'block'; }
-        else { drawSimple(ctx, glyph, offsetX, offsetY, scale, ascender); metricsLegend.style.display = 'none'; }
+        
+        var size = parseInt(modalGlyphSize.value);
+        document.getElementById('modalSizeValue').textContent = size + 'px';
+        
+        var glyph = currentGlyphData.glyph;
+        var unitsPerEm = currentFont.unitsPerEm;
+        var ascender = currentFont.ascender;
+        var descender = currentFont.descender;
+        var scale = size / unitsPerEm;
+        
+        var padding = 100;
+        var canvasWidth = unitsPerEm * scale + padding * 2;
+        var canvasHeight = (ascender - descender) * scale + padding * 2;
+        
+        glyphCanvas.width = canvasWidth;
+        glyphCanvas.height = canvasHeight;
+        
+        var ctx = glyphCanvas.getContext('2d');
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        
+        var offsetX = padding;
+        var offsetY = padding;
+        
+        if (metricsMode.checked) {
+            drawWithMetrics(ctx, glyph, offsetX, offsetY, scale, ascender);
+            metricsLegend.style.display = 'block';
+        } else {
+            drawSimple(ctx, glyph, offsetX, offsetY, scale, ascender);
+            metricsLegend.style.display = 'none';
+        }
     }
 
     function drawSimple(ctx, glyph, offsetX, offsetY, scale, ascender) {
         var path = glyph.getPath(0, 0, currentFont.unitsPerEm);
-        ctx.save(); ctx.translate(offsetX, offsetY); ctx.scale(scale, scale); ctx.translate(0, ascender); ctx.scale(1, -1);
-        ctx.fillStyle = '#333'; ctx.beginPath();
+        ctx.save();
+        ctx.translate(offsetX, offsetY);
+        ctx.scale(scale, scale);
+        ctx.translate(0, ascender);
+        ctx.scale(1, -1);
+        ctx.fillStyle = '#333';
+        ctx.beginPath();
         for (var i = 0; i < path.commands.length; i++) {
             var cmd = path.commands[i];
             if (cmd.type === 'M') ctx.moveTo(cmd.x, cmd.y);
@@ -243,38 +384,90 @@
             else if (cmd.type === 'C') ctx.bezierCurveTo(cmd.x1, cmd.y1, cmd.x2, cmd.y2, cmd.x, cmd.y);
             else if (cmd.type === 'Z') ctx.closePath();
         }
-        ctx.fill(); ctx.restore();
+        ctx.fill();
+        ctx.restore();
     }
 
     function drawWithMetrics(ctx, glyph, offsetX, offsetY, scale, ascender) {
         var path = glyph.getPath(0, 0, currentFont.unitsPerEm);
-        ctx.save(); ctx.translate(offsetX, offsetY); ctx.scale(scale, scale); ctx.translate(0, ascender); ctx.scale(1, -1);
-        ctx.strokeStyle = '#333'; ctx.lineWidth = 2 / scale; ctx.beginPath();
-        var points = [], controlPoints = [], lastPoint = null;
+        ctx.save();
+        ctx.translate(offsetX, offsetY);
+        ctx.scale(scale, scale);
+        ctx.translate(0, ascender);
+        ctx.scale(1, -1);
+        
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 2 / scale;
+        ctx.beginPath();
+        
+        var points = [];
+        var controlPoints = [];
+        var lastPoint = null;
+        
         for (var i = 0; i < path.commands.length; i++) {
             var cmd = path.commands[i];
-            if (cmd.type === 'M') { ctx.moveTo(cmd.x, cmd.y); points.push({x:cmd.x, y:cmd.y, type:'start'}); lastPoint = {x:cmd.x, y:cmd.y}; }
-            else if (cmd.type === 'L') { ctx.lineTo(cmd.x, cmd.y); points.push({x:cmd.x, y:cmd.y, type:'line'}); lastPoint = {x:cmd.x, y:cmd.y}; }
-            else if (cmd.type === 'Q') { ctx.quadraticCurveTo(cmd.x1, cmd.y1, cmd.x, cmd.y); controlPoints.push({x:cmd.x1, y:cmd.y1, from:lastPoint, to:{x:cmd.x, y:cmd.y}}); points.push({x:cmd.x, y:cmd.y, type:'curve'}); lastPoint = {x:cmd.x, y:cmd.y}; }
-            else if (cmd.type === 'C') { ctx.bezierCurveTo(cmd.x1, cmd.y1, cmd.x2, cmd.y2, cmd.x, cmd.y); controlPoints.push({x:cmd.x1, y:cmd.y1, from:lastPoint}); controlPoints.push({x:cmd.x2, y:cmd.y2, to:{x:cmd.x, y:cmd.y}}); points.push({x:cmd.x, y:cmd.y, type:'curve'}); lastPoint = {x:cmd.x, y:cmd.y}; }
-            else if (cmd.type === 'Z') ctx.closePath();
+            if (cmd.type === 'M') {
+                ctx.moveTo(cmd.x, cmd.y);
+                points.push({x:cmd.x, y:cmd.y, type:'start'});
+                lastPoint = {x:cmd.x, y:cmd.y};
+            } else if (cmd.type === 'L') {
+                ctx.lineTo(cmd.x, cmd.y);
+                points.push({x:cmd.x, y:cmd.y, type:'line'});
+                lastPoint = {x:cmd.x, y:cmd.y};
+            } else if (cmd.type === 'Q') {
+                ctx.quadraticCurveTo(cmd.x1, cmd.y1, cmd.x, cmd.y);
+                controlPoints.push({x:cmd.x1, y:cmd.y1, from:lastPoint, to:{x:cmd.x, y:cmd.y}});
+                points.push({x:cmd.x, y:cmd.y, type:'curve'});
+                lastPoint = {x:cmd.x, y:cmd.y};
+            } else if (cmd.type === 'C') {
+                ctx.bezierCurveTo(cmd.x1, cmd.y1, cmd.x2, cmd.y2, cmd.x, cmd.y);
+                controlPoints.push({x:cmd.x1, y:cmd.y1, from:lastPoint});
+                controlPoints.push({x:cmd.x2, y:cmd.y2, to:{x:cmd.x, y:cmd.y}});
+                points.push({x:cmd.x, y:cmd.y, type:'curve'});
+                lastPoint = {x:cmd.x, y:cmd.y};
+            } else if (cmd.type === 'Z') {
+                ctx.closePath();
+            }
         }
-        ctx.stroke(); ctx.strokeStyle = '#aaa'; ctx.lineWidth = 1 / scale; ctx.setLineDash([5/scale, 5/scale]);
+        ctx.stroke();
+        
+        ctx.strokeStyle = '#aaa';
+        ctx.lineWidth = 1 / scale;
+        ctx.setLineDash([5/scale, 5/scale]);
         for (var i = 0; i < controlPoints.length; i++) {
-            var cp = controlPoints[i]; ctx.beginPath();
-            if (cp.from) { ctx.moveTo(cp.from.x, cp.from.y); ctx.lineTo(cp.x, cp.y); }
-            if (cp.to) { ctx.moveTo(cp.x, cp.y); ctx.lineTo(cp.to.x, cp.to.y); }
+            var cp = controlPoints[i];
+            ctx.beginPath();
+            if (cp.from) {
+                ctx.moveTo(cp.from.x, cp.from.y);
+                ctx.lineTo(cp.x, cp.y);
+            }
+            if (cp.to) {
+                ctx.moveTo(cp.x, cp.y);
+                ctx.lineTo(cp.to.x, cp.to.y);
+            }
             ctx.stroke();
         }
         ctx.setLineDash([]);
+        
         for (var i = 0; i < controlPoints.length; i++) {
-            ctx.fillStyle = '#4444ff'; ctx.beginPath(); ctx.arc(controlPoints[i].x, controlPoints[i].y, 5/scale, 0, Math.PI*2);
-            ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2/scale; ctx.stroke();
+            ctx.fillStyle = '#4444ff';
+            ctx.beginPath();
+            ctx.arc(controlPoints[i].x, controlPoints[i].y, 5/scale, 0, Math.PI*2);
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2/scale;
+            ctx.stroke();
         }
+        
         for (var i = 0; i < points.length; i++) {
-            var p = points[i]; ctx.fillStyle = p.type === 'start' ? '#ff4444' : '#44ff44'; ctx.beginPath();
+            var p = points[i];
+            ctx.fillStyle = p.type === 'start' ? '#ff4444' : '#44ff44';
+            ctx.beginPath();
             ctx.arc(p.x, p.y, (p.type === 'start' ? 6 : 5)/scale, 0, Math.PI*2);
-            ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2/scale; ctx.stroke();
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2/scale;
+            ctx.stroke();
         }
         ctx.restore();
     }
@@ -283,15 +476,31 @@
     searchBox.oninput = function(e) {
         var query = e.target.value.toLowerCase();
         filteredGlyphs = query ? allGlyphs.filter(function(item) {
-            return item.unicodeHex.toLowerCase().indexOf(query) >= 0 || item.name.toLowerCase().indexOf(query) >= 0 || item.char.indexOf(query) >= 0;
+            return item.unicodeHex.toLowerCase().indexOf(query) >= 0 ||
+                   item.name.toLowerCase().indexOf(query) >= 0 ||
+                   item.char.indexOf(query) >= 0;
         }) : allGlyphs.slice();
         displayGlyphs();
     };
-    modalClose.onclick = function() { modalOverlay.classList.remove('active'); };
-    modalOverlay.onclick = function(e) { if (e.target === modalOverlay) modalOverlay.classList.remove('active'); };
+    
+    modalClose.onclick = function() {
+        modalOverlay.classList.remove('active');
+    };
+    
+    modalOverlay.onclick = function(e) {
+        if (e.target === modalOverlay) {
+            modalOverlay.classList.remove('active');
+        }
+    };
+    
     metricsMode.onchange = drawGlyphOnCanvas;
     modalGlyphSize.oninput = drawGlyphOnCanvas;
-    document.onkeydown = function(e) { if (e.key === 'Escape' && modalOverlay.classList.contains('active')) modalOverlay.classList.remove('active'); };
+    
+    document.onkeydown = function(e) {
+        if (e.key === 'Escape' && modalOverlay.classList.contains('active')) {
+            modalOverlay.classList.remove('active');
+        }
+    };
 </script>
 ```
 
