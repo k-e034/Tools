@@ -8,56 +8,56 @@
     <script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        body { font-family: -apple-system, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
         .container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
-        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
-        .upload-area { margin: 40px; padding: 60px; border: 3px dashed #667eea; border-radius: 15px; text-align: center; background: #f8f9ff; cursor: pointer; transition: all 0.3s; }
-        .upload-area:hover { background: #f0f2ff; border-color: #764ba2; }
-        .upload-area.dragover { background: #e8ebff; transform: scale(1.02); border-color: #764ba2; }
-        #fileInput { display: none; }
-        .loading { text-align: center; padding: 40px; color: #667eea; display: none; font-size: 1.2em; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; text-align: center; }
+        .header h1 { font-size: 2.8em; margin-bottom: 12px; font-weight: 700; }
+        .upload-area { margin: 50px 60px; padding: 80px 40px; border: 3px dashed #667eea; border-radius: 16px; text-align: center; background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%); transition: all 0.3s; }
+        .upload-area:hover { background: linear-gradient(135deg, #f0f2ff 0%, #e8ebff 100%); border-color: #764ba2; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(102,126,234,0.2); }
+        .upload-icon { font-size: 5em; margin-bottom: 20px; opacity: 0.8; }
+        .upload-area h2 { color: #667eea; font-size: 1.8em; margin-bottom: 12px; font-weight: 600; }
+        .file-input-label { display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 30px; cursor: pointer; font-size: 1.1em; font-weight: 600; transition: all 0.3s; box-shadow: 0 4px 15px rgba(102,126,234,0.4); }
+        .file-input-label:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102,126,234,0.6); }
+        #fileInput { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+        .loading { text-align: center; padding: 60px 40px; color: #667eea; display: none; font-size: 1.3em; font-weight: 600; }
         .loading.active { display: block; }
-        .info-panel { margin: 20px 40px; padding: 25px; background: #f8f9ff; border-radius: 10px; display: none; }
+        .info-panel { margin: 30px 60px; padding: 30px; background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%); border-radius: 12px; display: none; }
         .info-panel.active { display: block; }
-        .info-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #e0e0e0; }
+        .info-item { display: flex; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid rgba(102,126,234,0.1); }
         .info-label { font-weight: 600; color: #667eea; }
-        .stats { display: flex; justify-content: space-around; margin: 20px 40px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; display: none; }
+        .stats { display: flex; justify-content: space-around; margin: 30px 60px; padding: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; display: none; }
         .stats.active { display: flex; }
         .stat-item { text-align: center; color: white; }
-        .stat-number { font-size: 2.5em; font-weight: bold; }
-        .controls { margin: 20px 40px; padding: 25px; background: white; border-radius: 10px; display: none; }
+        .stat-number { font-size: 3em; font-weight: 700; margin-bottom: 8px; }
+        .controls { margin: 30px 60px; padding: 30px; background: white; border-radius: 12px; display: none; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .controls.active { display: block; }
-        .control-group { margin-bottom: 20px; }
-        .control-group label { display: block; font-weight: 600; color: #667eea; margin-bottom: 8px; }
+        .control-group { margin-bottom: 25px; }
+        .control-group label { display: block; font-weight: 600; color: #667eea; margin-bottom: 10px; font-size: 1.05em; }
         .control-group input[type="range"] { width: 100%; }
-        .control-group input[type="text"] { width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 5px; }
-        .glyph-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 15px; margin: 20px 40px 40px; display: none; }
+        .control-group input[type="text"] { width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1em; }
+        .glyph-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 18px; margin: 30px 60px 60px; display: none; }
         .glyph-grid.active { display: grid; }
-        .glyph-card { background: white; border: 2px solid #e0e0e0; border-radius: 10px; padding: 15px; text-align: center; cursor: pointer; transition: all 0.3s; }
-        .glyph-card:hover { border-color: #667eea; transform: translateY(-5px); box-shadow: 0 5px 15px rgba(102,126,234,0.3); }
-        .glyph-display { height: 80px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
-        .glyph-info { font-size: 0.8em; color: #666; border-top: 1px solid #e0e0e0; padding-top: 8px; }
-        .glyph-unicode { font-weight: 600; color: #667eea; }
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+        .glyph-card { background: white; border: 2px solid #e0e0e0; border-radius: 12px; padding: 16px; text-align: center; cursor: pointer; transition: all 0.3s; }
+        .glyph-card:hover { border-color: #667eea; transform: translateY(-4px); box-shadow: 0 8px 16px rgba(102,126,234,0.3); }
+        .glyph-display { height: 80px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+        .glyph-info { font-size: 0.85em; color: #666; border-top: 1px solid #e0e0e0; padding-top: 10px; }
+        .glyph-unicode { font-weight: 600; color: #667eea; margin-bottom: 4px; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
         .modal-overlay.active { display: flex; }
         .modal-content { background: white; border-radius: 20px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; }
-        .modal-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px 30px; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; align-items: center; }
-        .modal-close { background: rgba(255,255,255,0.2); border: none; color: white; font-size: 2em; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; transition: all 0.3s; }
+        .modal-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 35px; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; align-items: center; }
+        .modal-close { background: rgba(255,255,255,0.2); border: none; color: white; font-size: 2em; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; transition: all 0.3s; }
         .modal-close:hover { background: rgba(255,255,255,0.3); }
-        .modal-body { padding: 30px; }
-        .glyph-detail-display { background: #f8f9ff; border-radius: 10px; padding: 40px; margin-bottom: 25px; display: flex; align-items: center; justify-content: center; min-height: 400px; }
-        .glyph-canvas { border: 2px solid #e0e0e0; background: white; border-radius: 5px; }
-        .modal-controls { background: white; border: 2px solid #e0e0e0; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+        .modal-body { padding: 35px; }
+        .glyph-detail-display { background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%); border-radius: 12px; padding: 50px; margin-bottom: 30px; display: flex; align-items: center; justify-content: center; min-height: 400px; }
+        .glyph-canvas { border: 2px solid #e0e0e0; background: white; border-radius: 8px; }
+        .modal-controls { background: white; border: 2px solid #e0e0e0; border-radius: 12px; padding: 25px; margin-bottom: 25px; }
         .checkbox-label { display: flex; align-items: center; cursor: pointer; font-weight: 600; color: #667eea; }
-        .checkbox-label input { width: 20px; height: 20px; margin-right: 10px; cursor: pointer; }
-        .metrics-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 15px; padding: 15px; background: #f8f9ff; border-radius: 8px; }
-        .legend-item { display: flex; align-items: center; font-size: 0.9em; }
-        .legend-color { width: 20px; height: 20px; border-radius: 3px; margin-right: 8px; }
-        .modal-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
-        .modal-info-item { background: #f8f9ff; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea; }
-        .modal-info-label { font-size: 0.85em; color: #666; margin-bottom: 5px; }
-        .modal-info-value { font-size: 1.2em; font-weight: 600; color: #333; word-break: break-word; }
+        .checkbox-label input { width: 22px; height: 22px; margin-right: 12px; cursor: pointer; }
+        .modal-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px; }
+        .modal-info-item { background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%); padding: 18px; border-radius: 10px; border-left: 4px solid #667eea; }
+        .modal-info-label { font-size: 0.9em; color: #666; margin-bottom: 6px; }
+        .modal-info-value { font-size: 1.25em; font-weight: 600; color: #333; word-break: break-word; }
     </style>
 </head>
 <body>
@@ -66,26 +66,21 @@
             <h1>🔤 フォントグリフビューア</h1>
             <p>cmapテーブルを参照して全グリフを表示</p>
         </div>
-        <div class="upload-area" id="uploadArea">
-            <div style="font-size: 4em; margin-bottom: 20px;">📁</div>
-            <h2 style="color: #667eea; margin-bottom: 10px;">フォントファイルをドロップまたはクリック</h2>
-            <p style="color: #666;">TTF、OTF、WOFFファイルに対応</p>
+        <div class="upload-area">
+            <div class="upload-icon">📁</div>
+            <h2>フォントファイルを選択</h2>
+            <p style="color:#666;margin-bottom:25px;">TTF、OTF、WOFFファイルに対応</p>
+            <label for="fileInput" class="file-input-label">ファイルを選択</label>
+            <input type="file" id="fileInput" accept=".ttf,.otf,.woff,.woff2">
         </div>
-        <input type="file" id="fileInput" accept=".ttf,.otf,.woff,.woff2">
         <div class="loading" id="loading">📊 フォントを解析中...</div>
         <div class="info-panel" id="infoPanel">
-            <h3 style="color: #667eea; margin-bottom: 15px;">📋 フォント情報</h3>
+            <h3 style="color:#667eea;margin-bottom:20px;">📋 フォント情報</h3>
             <div id="fontInfo"></div>
         </div>
         <div class="stats" id="stats">
-            <div class="stat-item">
-                <div class="stat-number" id="totalGlyphs">0</div>
-                <div style="font-size: 0.9em;">総グリフ数</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-number" id="unicodeGlyphs">0</div>
-                <div style="font-size: 0.9em;">Unicode対応</div>
-            </div>
+            <div class="stat-item"><div class="stat-number" id="totalGlyphs">0</div><div>総グリフ数</div></div>
+            <div class="stat-item"><div class="stat-number" id="unicodeGlyphs">0</div><div>Unicode対応</div></div>
         </div>
         <div class="controls" id="controls">
             <div class="control-group">
@@ -111,20 +106,11 @@
                 </div>
                 <div class="modal-controls">
                     <label class="checkbox-label">
-                        <input type="checkbox" id="metricsMode">
-                        メトリクスモード（制御点とアウトライン表示）
+                        <input type="checkbox" id="metricsMode">メトリクスモード
                     </label>
-                    <div id="metricsLegend" style="display:none;">
-                        <div class="metrics-legend">
-                            <div class="legend-item"><div class="legend-color" style="background:#333;"></div><span>アウトライン</span></div>
-                            <div class="legend-item"><div class="legend-color" style="background:#ff4444;"></div><span>始点</span></div>
-                            <div class="legend-item"><div class="legend-color" style="background:#4444ff;"></div><span>制御点</span></div>
-                            <div class="legend-item"><div class="legend-color" style="background:#44ff44;"></div><span>オンカーブ点</span></div>
-                        </div>
-                    </div>
-                    <div style="margin-top:15px;">
-                        <label style="display:block;font-weight:600;color:#667eea;margin-bottom:8px;">表示サイズ: <span id="modalSizeValue">256px</span></label>
-                        <input type="range" id="modalGlyphSize" min="128" max="512" value="256" step="16" style="width:100%;">
+                    <div class="control-group" style="margin-top:20px;">
+                        <label>表示サイズ: <span id="modalSizeValue">256px</span></label>
+                        <input type="range" id="modalGlyphSize" min="128" max="512" value="256" step="16">
                     </div>
                 </div>
                 <div class="modal-info" id="modalInfo"></div>
@@ -132,432 +118,111 @@
         </div>
     </div>
     <script>
-        // Safari互換のpadStart polyfill
-        if (!String.prototype.padStart) {
-            String.prototype.padStart = function(targetLength, padString) {
-                targetLength = targetLength >> 0;
-                padString = String(typeof padString !== 'undefined' ? padString : ' ');
-                if (this.length >= targetLength) {
-                    return String(this);
-                }
-                targetLength = targetLength - this.length;
-                if (targetLength > padString.length) {
-                    padString += padString.repeat(targetLength / padString.length);
-                }
-                return padString.slice(0, targetLength) + String(this);
-            };
-        }
-
-```
-    var currentFont = null;
-    var allGlyphs = [];
-    var filteredGlyphs = [];
-    var currentGlyphData = null;
-
-    var uploadArea = document.getElementById('uploadArea');
-    var fileInput = document.getElementById('fileInput');
-    var loading = document.getElementById('loading');
-    var infoPanel = document.getElementById('infoPanel');
-    var stats = document.getElementById('stats');
-    var controls = document.getElementById('controls');
-    var glyphGrid = document.getElementById('glyphGrid');
-    var glyphSize = document.getElementById('glyphSize');
-    var searchBox = document.getElementById('searchBox');
-    var modalOverlay = document.getElementById('modalOverlay');
-    var modalClose = document.getElementById('modalClose');
-    var glyphCanvas = document.getElementById('glyphCanvas');
-    var metricsMode = document.getElementById('metricsMode');
-    var modalGlyphSize = document.getElementById('modalGlyphSize');
-    var metricsLegend = document.getElementById('metricsLegend');
-
-    // アップロードエリアのクリックイベント
-    uploadArea.addEventListener('click', function(e) {
-        e.preventDefault();
-        console.log('Upload area clicked');
-        fileInput.click();
-    }, false);
-
-    // ドラッグ&ドロップイベント
-    uploadArea.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        uploadArea.classList.add('dragover');
-    }, false);
-
-    uploadArea.addEventListener('dragleave', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        uploadArea.classList.remove('dragover');
-    }, false);
-
-    uploadArea.addEventListener('drop', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        uploadArea.classList.remove('dragover');
-        console.log('File dropped');
-        var files = e.dataTransfer.files;
-        if (files && files.length > 0) {
-            loadFont(files[0]);
-        }
-    }, false);
-
-    // ファイル選択イベント
-    fileInput.addEventListener('change', function(e) {
-        console.log('File input changed');
-        var files = e.target.files;
-        if (files && files.length > 0) {
-            loadFont(files[0]);
-        }
-    }, false);
-
-    function loadFont(file) {
-        if (!file) {
-            console.error('No file provided');
-            return;
-        }
-        
-        console.log('Loading font:', file.name, file.size, 'bytes', 'type:', file.type);
-        loading.classList.add('active');
-        uploadArea.style.display = 'none';
-        
-        var reader = new FileReader();
-        
-        reader.onerror = function(e) {
-            console.error('FileReader error:', e);
-            alert('ファイルの読み込みに失敗しました');
-            loading.classList.remove('active');
-            uploadArea.style.display = 'block';
+        function pad(s,l,c){s=String(s);var i=-1;if(!c&&c!==0)c=' ';l=l-s.length;while(++i<l)s=c+s;return s;}
+        var font=null,all=[],filt=[],cur=null;
+        document.getElementById('fileInput').onchange=function(e){
+            var f=e.target.files[0];if(!f)return;
+            document.getElementById('loading').classList.add('active');
+            document.querySelector('.upload-area').style.display='none';
+            var r=new FileReader();
+            r.onload=function(e){
+                try{
+                    font=opentype.parse(e.target.result);
+                    showInfo();extract();render();
+                    document.getElementById('loading').classList.remove('active');
+                    ['infoPanel','stats','controls','glyphGrid'].forEach(function(id){
+                        document.getElementById(id).classList.add('active');
+                    });
+                }catch(err){alert('エラー: '+err.message);
+                    document.getElementById('loading').classList.remove('active');
+                    document.querySelector('.upload-area').style.display='block';}
+            };r.readAsArrayBuffer(f);
         };
-        
-        reader.onload = function(e) {
-            console.log('File loaded, size:', e.target.result.byteLength, 'bytes');
-            try {
-                currentFont = opentype.parse(e.target.result);
-                console.log('Font parsed successfully');
-                console.log('Font name:', currentFont.names.fullName);
-                console.log('Ascender:', currentFont.ascender);
-                console.log('Descender:', currentFont.descender);
-                console.log('Units per EM:', currentFont.unitsPerEm);
-                console.log('Num glyphs:', currentFont.numGlyphs);
-                
-                displayFontInfo();
-                extractGlyphs();
-                displayGlyphs();
-                
-                loading.classList.remove('active');
-                infoPanel.classList.add('active');
-                stats.classList.add('active');
-                controls.classList.add('active');
-                glyphGrid.classList.add('active');
-            } catch (error) {
-                console.error('Parse error:', error);
-                console.error('Error stack:', error.stack);
-                alert('フォントの解析に失敗しました: ' + error.message);
-                loading.classList.remove('active');
-                uploadArea.style.display = 'block';
+        function showInfo(){
+            var n=font.names,h='';
+            h+='<div class="info-item"><span class="info-label">フォント名</span><span>'+(n.fullName?n.fullName.en||n.fullName:'N/A')+'</span></div>';
+            h+='<div class="info-item"><span class="info-label">グリフ数</span><span>'+font.numGlyphs+'</span></div>';
+            h+='<div class="info-item"><span class="info-label">Units per EM</span><span>'+font.unitsPerEm+'</span></div>';
+            h+='<div class="info-item"><span class="info-label">Ascender</span><span>'+font.ascender+'</span></div>';
+            h+='<div class="info-item"><span class="info-label">Descender</span><span>'+font.descender+'</span></div>';
+            document.getElementById('fontInfo').innerHTML=h;
+        }
+        function extract(){
+            all=[];var m={};
+            if(font.tables.cmap&&font.tables.cmap.glyphIndexMap){
+                for(var c in font.tables.cmap.glyphIndexMap)
+                    if(font.tables.cmap.glyphIndexMap.hasOwnProperty(c))
+                        m[font.tables.cmap.glyphIndexMap[c]]=parseInt(c,10);
             }
+            for(var i=0;i<font.numGlyphs;i++){
+                var g=font.glyphs.get(i),u=m[i],h='N/A';
+                if(u){var x=u.toString(16).toUpperCase();h='U+'+pad(x,4,'0');}
+                all.push({idx:i,g:g,u:u,hex:h,chr:u?String.fromCharCode(u):'',nm:g.name||'glyph'+i});
+            }
+            filt=all.slice();
+            document.getElementById('totalGlyphs').textContent=all.length;
+            var uc=0;for(var i=0;i<all.length;i++)if(all[i].u)uc++;
+            document.getElementById('unicodeGlyphs').textContent=uc;
+        }
+        function render(){
+            var sz=parseInt(document.getElementById('glyphSize').value,10);
+            document.getElementById('sizeValue').textContent=sz+'px';
+            var h='',em=font.unitsPerEm,asc=font.ascender,dsc=font.descender,sc=sz/em;
+            var vx=0,vy=-asc*sc,vw=em*sc,vh=(asc-dsc)*sc;
+            for(var i=0;i<filt.length;i++){
+                var it=filt[i],p=it.g.getPath(0,0,sz),sv=p.toSVG(2);
+                h+='<div class="glyph-card" onclick="openModal('+i+')">';
+                h+='<div class="glyph-display"><svg width="'+sz+'" height="'+sz+'" viewBox="'+vx+' '+vy+' '+vw+' '+vh+'">'+sv+'</svg></div>';
+                h+='<div class="glyph-info"><div class="glyph-unicode">'+it.hex+'</div><div>'+(it.chr||it.nm)+'</div></div></div>';
+            }
+            document.getElementById('glyphGrid').innerHTML=h;
+        }
+        function openModal(i){
+            var gd=filt[i];cur=gd;
+            document.getElementById('modalTitle').textContent=gd.hex+' - '+gd.nm;
+            var bb=gd.g.getBoundingBox(),h='';
+            h+='<div class="modal-info-item"><div class="modal-info-label">Unicode</div><div class="modal-info-value">'+gd.hex+'</div></div>';
+            h+='<div class="modal-info-item"><div class="modal-info-label">グリフ名</div><div class="modal-info-value">'+gd.nm+'</div></div>';
+            h+='<div class="modal-info-item"><div class="modal-info-label">インデックス</div><div class="modal-info-value">'+gd.idx+'</div></div>';
+            h+='<div class="modal-info-item"><div class="modal-info-label">幅</div><div class="modal-info-value">'+(gd.g.advanceWidth||0)+'</div></div>';
+            document.getElementById('modalInfo').innerHTML=h;
+            drawCanvas();
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+        function drawCanvas(){
+            if(!cur)return;
+            var sz=parseInt(document.getElementById('modalGlyphSize').value,10);
+            document.getElementById('modalSizeValue').textContent=sz+'px';
+            var g=cur.g,em=font.unitsPerEm,asc=font.ascender,dsc=font.descender,sc=sz/em,pd=100;
+            var c=document.getElementById('glyphCanvas');
+            c.width=em*sc+pd*2;c.height=(asc-dsc)*sc+pd*2;
+            var ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);
+            var p=g.getPath(0,0,em);ctx.save();ctx.translate(pd,pd);ctx.scale(sc,sc);ctx.translate(0,asc);ctx.scale(1,-1);
+            ctx.fillStyle='#333';ctx.beginPath();
+            for(var i=0;i<p.commands.length;i++){
+                var cm=p.commands[i];
+                if(cm.type==='M')ctx.moveTo(cm.x,cm.y);
+                else if(cm.type==='L')ctx.lineTo(cm.x,cm.y);
+                else if(cm.type==='Q')ctx.quadraticCurveTo(cm.x1,cm.y1,cm.x,cm.y);
+                else if(cm.type==='C')ctx.bezierCurveTo(cm.x1,cm.y1,cm.x2,cm.y2,cm.x,cm.y);
+                else if(cm.type==='Z')ctx.closePath();
+            }
+            ctx.fill();ctx.restore();
+        }
+        document.getElementById('glyphSize').oninput=render;
+        document.getElementById('searchBox').oninput=function(){
+            var q=this.value.toLowerCase();
+            if(q){filt=[];for(var i=0;i<all.length;i++){
+                var it=all[i];
+                if(it.hex.toLowerCase().indexOf(q)>=0||it.nm.toLowerCase().indexOf(q)>=0||it.chr.indexOf(q)>=0)filt.push(it);
+            }}else filt=all.slice();
+            render();
         };
-        
-        reader.readAsArrayBuffer(file);
-    }
-
-    function displayFontInfo() {
-        var names = currentFont.names;
-        var html = '';
-        var fullName = 'N/A';
-        if (names.fullName) {
-            fullName = names.fullName.en || names.fullName;
-        }
-        html += '<div class="info-item"><span class="info-label">フォント名</span><span>' + fullName + '</span></div>';
-        html += '<div class="info-item"><span class="info-label">グリフ数</span><span>' + currentFont.numGlyphs + '</span></div>';
-        html += '<div class="info-item"><span class="info-label">Units per EM</span><span>' + currentFont.unitsPerEm + '</span></div>';
-        html += '<div class="info-item"><span class="info-label">Ascender</span><span>' + currentFont.ascender + '</span></div>';
-        html += '<div class="info-item"><span class="info-label">Descender</span><span>' + currentFont.descender + '</span></div>';
-        document.getElementById('fontInfo').innerHTML = html;
-    }
-
-    function extractGlyphs() {
-        allGlyphs = [];
-        var glyphIndexMap = {};
-        
-        if (currentFont.tables.cmap && currentFont.tables.cmap.glyphIndexMap) {
-            for (var code in currentFont.tables.cmap.glyphIndexMap) {
-                if (currentFont.tables.cmap.glyphIndexMap.hasOwnProperty(code)) {
-                    var idx = currentFont.tables.cmap.glyphIndexMap[code];
-                    glyphIndexMap[idx] = parseInt(code, 10);
-                }
-            }
-        }
-
-        for (var i = 0; i < currentFont.numGlyphs; i++) {
-            var glyph = currentFont.glyphs.get(i);
-            var unicode = glyphIndexMap[i];
-            var hexString = 'N/A';
-            if (unicode) {
-                var hex = unicode.toString(16).toUpperCase();
-                while (hex.length < 4) {
-                    hex = '0' + hex;
-                }
-                hexString = 'U+' + hex;
-            }
-            allGlyphs.push({
-                index: i,
-                glyph: glyph,
-                unicode: unicode,
-                unicodeHex: hexString,
-                char: unicode ? String.fromCharCode(unicode) : '',
-                name: glyph.name || 'glyph' + i
-            });
-        }
-
-        filteredGlyphs = allGlyphs.slice();
-        document.getElementById('totalGlyphs').textContent = allGlyphs.length;
-        var unicodeCount = 0;
-        for (var i = 0; i < allGlyphs.length; i++) {
-            if (allGlyphs[i].unicode) {
-                unicodeCount++;
-            }
-        }
-        document.getElementById('unicodeGlyphs').textContent = unicodeCount;
-    }
-
-    function displayGlyphs() {
-        var size = parseInt(glyphSize.value, 10);
-        document.getElementById('sizeValue').textContent = size + 'px';
-        var html = '';
-        
-        var unitsPerEm = currentFont.unitsPerEm;
-        var ascender = currentFont.ascender;
-        var descender = currentFont.descender;
-        var scale = size / unitsPerEm;
-        
-        for (var i = 0; i < filteredGlyphs.length; i++) {
-            var item = filteredGlyphs[i];
-            var path = item.glyph.getPath(0, 0, size);
-            var svg = path.toSVG(2);
-            
-            var viewBoxX = 0;
-            var viewBoxY = -ascender * scale;
-            var viewBoxWidth = unitsPerEm * scale;
-            var viewBoxHeight = (ascender - descender) * scale;
-
-            html += '<div class="glyph-card" data-idx="' + i + '">';
-            html += '<div class="glyph-display">';
-            html += '<svg width="' + size + '" height="' + size + '" viewBox="' + viewBoxX + ' ' + viewBoxY + ' ' + viewBoxWidth + ' ' + viewBoxHeight + '">' + svg + '</svg>';
-            html += '</div>';
-            html += '<div class="glyph-info">';
-            html += '<div class="glyph-unicode">' + item.unicodeHex + '</div>';
-            html += '<div>' + (item.char || item.name) + '</div>';
-            html += '</div></div>';
-        }
-        glyphGrid.innerHTML = html;
-
-        var cards = document.querySelectorAll('.glyph-card');
-        for (var i = 0; i < cards.length; i++) {
-            (function(index) {
-                cards[index].onclick = function() {
-                    openGlyphModal(filteredGlyphs[parseInt(this.getAttribute('data-idx'), 10)]);
-                };
-            })(i);
-        }
-    }
-
-    function openGlyphModal(glyphData) {
-        currentGlyphData = glyphData;
-        document.getElementById('modalTitle').textContent = glyphData.unicodeHex + ' - ' + glyphData.name;
-        
-        var bbox = glyphData.glyph.getBoundingBox();
-        var html = '';
-        html += '<div class="modal-info-item"><div class="modal-info-label">Unicode</div><div class="modal-info-value">' + glyphData.unicodeHex + '</div></div>';
-        html += '<div class="modal-info-item"><div class="modal-info-label">グリフ名</div><div class="modal-info-value">' + glyphData.name + '</div></div>';
-        html += '<div class="modal-info-item"><div class="modal-info-label">インデックス</div><div class="modal-info-value">' + glyphData.index + '</div></div>';
-        html += '<div class="modal-info-item"><div class="modal-info-label">幅</div><div class="modal-info-value">' + (glyphData.glyph.advanceWidth || 0) + '</div></div>';
-        html += '<div class="modal-info-item"><div class="modal-info-label">BBox</div><div class="modal-info-value">' + bbox.x1.toFixed(0) + ',' + bbox.y1.toFixed(0) + ' → ' + bbox.x2.toFixed(0) + ',' + bbox.y2.toFixed(0) + '</div></div>';
-        document.getElementById('modalInfo').innerHTML = html;
-        
-        drawGlyphOnCanvas();
-        modalOverlay.classList.add('active');
-    }
-
-    function drawGlyphOnCanvas() {
-        if (!currentGlyphData) return;
-        
-        var size = parseInt(modalGlyphSize.value, 10);
-        document.getElementById('modalSizeValue').textContent = size + 'px';
-        
-        var glyph = currentGlyphData.glyph;
-        var unitsPerEm = currentFont.unitsPerEm;
-        var ascender = currentFont.ascender;
-        var descender = currentFont.descender;
-        var scale = size / unitsPerEm;
-        
-        var padding = 100;
-        var canvasWidth = unitsPerEm * scale + padding * 2;
-        var canvasHeight = (ascender - descender) * scale + padding * 2;
-        
-        glyphCanvas.width = canvasWidth;
-        glyphCanvas.height = canvasHeight;
-        
-        var ctx = glyphCanvas.getContext('2d');
-        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-        
-        var offsetX = padding;
-        var offsetY = padding;
-        
-        if (metricsMode.checked) {
-            drawWithMetrics(ctx, glyph, offsetX, offsetY, scale, ascender);
-            metricsLegend.style.display = 'block';
-        } else {
-            drawSimple(ctx, glyph, offsetX, offsetY, scale, ascender);
-            metricsLegend.style.display = 'none';
-        }
-    }
-
-    function drawSimple(ctx, glyph, offsetX, offsetY, scale, ascender) {
-        var path = glyph.getPath(0, 0, currentFont.unitsPerEm);
-        ctx.save();
-        ctx.translate(offsetX, offsetY);
-        ctx.scale(scale, scale);
-        ctx.translate(0, ascender);
-        ctx.scale(1, -1);
-        ctx.fillStyle = '#333';
-        ctx.beginPath();
-        for (var i = 0; i < path.commands.length; i++) {
-            var cmd = path.commands[i];
-            if (cmd.type === 'M') ctx.moveTo(cmd.x, cmd.y);
-            else if (cmd.type === 'L') ctx.lineTo(cmd.x, cmd.y);
-            else if (cmd.type === 'Q') ctx.quadraticCurveTo(cmd.x1, cmd.y1, cmd.x, cmd.y);
-            else if (cmd.type === 'C') ctx.bezierCurveTo(cmd.x1, cmd.y1, cmd.x2, cmd.y2, cmd.x, cmd.y);
-            else if (cmd.type === 'Z') ctx.closePath();
-        }
-        ctx.fill();
-        ctx.restore();
-    }
-
-    function drawWithMetrics(ctx, glyph, offsetX, offsetY, scale, ascender) {
-        var path = glyph.getPath(0, 0, currentFont.unitsPerEm);
-        ctx.save();
-        ctx.translate(offsetX, offsetY);
-        ctx.scale(scale, scale);
-        ctx.translate(0, ascender);
-        ctx.scale(1, -1);
-        
-        ctx.strokeStyle = '#333';
-        ctx.lineWidth = 2 / scale;
-        ctx.beginPath();
-        
-        var points = [];
-        var controlPoints = [];
-        var lastPoint = null;
-        
-        for (var i = 0; i < path.commands.length; i++) {
-            var cmd = path.commands[i];
-            if (cmd.type === 'M') {
-                ctx.moveTo(cmd.x, cmd.y);
-                points.push({x:cmd.x, y:cmd.y, type:'start'});
-                lastPoint = {x:cmd.x, y:cmd.y};
-            } else if (cmd.type === 'L') {
-                ctx.lineTo(cmd.x, cmd.y);
-                points.push({x:cmd.x, y:cmd.y, type:'line'});
-                lastPoint = {x:cmd.x, y:cmd.y};
-            } else if (cmd.type === 'Q') {
-                ctx.quadraticCurveTo(cmd.x1, cmd.y1, cmd.x, cmd.y);
-                controlPoints.push({x:cmd.x1, y:cmd.y1, from:lastPoint, to:{x:cmd.x, y:cmd.y}});
-                points.push({x:cmd.x, y:cmd.y, type:'curve'});
-                lastPoint = {x:cmd.x, y:cmd.y};
-            } else if (cmd.type === 'C') {
-                ctx.bezierCurveTo(cmd.x1, cmd.y1, cmd.x2, cmd.y2, cmd.x, cmd.y);
-                controlPoints.push({x:cmd.x1, y:cmd.y1, from:lastPoint});
-                controlPoints.push({x:cmd.x2, y:cmd.y2, to:{x:cmd.x, y:cmd.y}});
-                points.push({x:cmd.x, y:cmd.y, type:'curve'});
-                lastPoint = {x:cmd.x, y:cmd.y};
-            } else if (cmd.type === 'Z') {
-                ctx.closePath();
-            }
-        }
-        ctx.stroke();
-        
-        ctx.strokeStyle = '#aaa';
-        ctx.lineWidth = 1 / scale;
-        ctx.setLineDash([5/scale, 5/scale]);
-        for (var i = 0; i < controlPoints.length; i++) {
-            var cp = controlPoints[i];
-            ctx.beginPath();
-            if (cp.from) {
-                ctx.moveTo(cp.from.x, cp.from.y);
-                ctx.lineTo(cp.x, cp.y);
-            }
-            if (cp.to) {
-                ctx.moveTo(cp.x, cp.y);
-                ctx.lineTo(cp.to.x, cp.to.y);
-            }
-            ctx.stroke();
-        }
-        ctx.setLineDash([]);
-        
-        for (var i = 0; i < controlPoints.length; i++) {
-            ctx.fillStyle = '#4444ff';
-            ctx.beginPath();
-            ctx.arc(controlPoints[i].x, controlPoints[i].y, 5/scale, 0, Math.PI*2);
-            ctx.fill();
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 2/scale;
-            ctx.stroke();
-        }
-        
-        for (var i = 0; i < points.length; i++) {
-            var p = points[i];
-            ctx.fillStyle = p.type === 'start' ? '#ff4444' : '#44ff44';
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, (p.type === 'start' ? 6 : 5)/scale, 0, Math.PI*2);
-            ctx.fill();
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 2/scale;
-            ctx.stroke();
-        }
-        ctx.restore();
-    }
-
-    glyphSize.oninput = displayGlyphs;
-    
-    searchBox.oninput = function(e) {
-        var query = e.target.value.toLowerCase();
-        if (query) {
-            filteredGlyphs = [];
-            for (var i = 0; i < allGlyphs.length; i++) {
-                var item = allGlyphs[i];
-                if (item.unicodeHex.toLowerCase().indexOf(query) >= 0 ||
-                    item.name.toLowerCase().indexOf(query) >= 0 ||
-                    item.char.indexOf(query) >= 0) {
-                    filteredGlyphs.push(item);
-                }
-            }
-        } else {
-            filteredGlyphs = allGlyphs.slice();
-        }
-        displayGlyphs();
-    };
-    
-    modalClose.onclick = function() {
-        modalOverlay.classList.remove('active');
-    };
-    
-    modalOverlay.onclick = function(e) {
-        if (e.target === modalOverlay) {
-            modalOverlay.classList.remove('active');
-        }
-    };
-    
-    metricsMode.onchange = drawGlyphOnCanvas;
-    modalGlyphSize.oninput = drawGlyphOnCanvas;
-    
-    document.onkeydown = function(e) {
-        if (e.key === 'Escape' && modalOverlay.classList.contains('active')) {
-            modalOverlay.classList.remove('active');
-        }
-    };
-</script>
-```
-
+        document.getElementById('modalClose').onclick=function(){document.getElementById('modalOverlay').classList.remove('active');};
+        document.getElementById('modalOverlay').onclick=function(e){if(e.target.id==='modalOverlay')document.getElementById('modalOverlay').classList.remove('active');};
+        document.getElementById('metricsMode').onchange=drawCanvas;
+        document.getElementById('modalGlyphSize').oninput=drawCanvas;
+        document.onkeydown=function(e){if(e.key==='Escape'&&document.getElementById('modalOverlay').classList.contains('active'))document.getElementById('modalOverlay').classList.remove('active');};
+    </script>
 </body>
 </html>
