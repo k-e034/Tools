@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: system-ui, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
         .container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
         .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
         .header h1 { font-size: 2.5em; margin-bottom: 10px; }
@@ -44,7 +44,7 @@
         .modal-content { background: white; border-radius: 20px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; }
         .modal-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px 30px; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; align-items: center; }
         .modal-close { background: rgba(255,255,255,0.2); border: none; color: white; font-size: 2em; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; transition: all 0.3s; }
-        .modal-close:hover { background: rgba(255,255,255,0.3); transform: rotate(90deg); }
+        .modal-close:hover { background: rgba(255,255,255,0.3); }
         .modal-body { padding: 30px; }
         .glyph-detail-display { background: #f8f9ff; border-radius: 10px; padding: 40px; margin-bottom: 25px; display: flex; align-items: center; justify-content: center; min-height: 400px; }
         .glyph-canvas { border: 2px solid #e0e0e0; background: white; border-radius: 5px; }
@@ -132,12 +132,28 @@
         </div>
     </div>
     <script>
-        var currentFont = null;
-        var allGlyphs = [];
-        var filteredGlyphs = [];
-        var currentGlyphData = null;
+        // Safari互換のpadStart polyfill
+        if (!String.prototype.padStart) {
+            String.prototype.padStart = function(targetLength, padString) {
+                targetLength = targetLength >> 0;
+                padString = String(typeof padString !== 'undefined' ? padString : ' ');
+                if (this.length >= targetLength) {
+                    return String(this);
+                }
+                targetLength = targetLength - this.length;
+                if (targetLength > padString.length) {
+                    padString += padString.repeat(targetLength / padString.length);
+                }
+                return padString.slice(0, targetLength) + String(this);
+            };
+        }
 
 ```
+    var currentFont = null;
+    var allGlyphs = [];
+    var filteredGlyphs = [];
+    var currentGlyphData = null;
+
     var uploadArea = document.getElementById('uploadArea');
     var fileInput = document.getElementById('fileInput');
     var loading = document.getElementById('loading');
@@ -155,23 +171,24 @@
     var metricsLegend = document.getElementById('metricsLegend');
 
     // アップロードエリアのクリックイベント
-    uploadArea.addEventListener('click', function() {
+    uploadArea.addEventListener('click', function(e) {
+        e.preventDefault();
         console.log('Upload area clicked');
         fileInput.click();
-    });
+    }, false);
 
     // ドラッグ&ドロップイベント
     uploadArea.addEventListener('dragover', function(e) {
         e.preventDefault();
         e.stopPropagation();
         uploadArea.classList.add('dragover');
-    });
+    }, false);
 
     uploadArea.addEventListener('dragleave', function(e) {
         e.preventDefault();
         e.stopPropagation();
         uploadArea.classList.remove('dragover');
-    });
+    }, false);
 
     uploadArea.addEventListener('drop', function(e) {
         e.preventDefault();
@@ -179,22 +196,27 @@
         uploadArea.classList.remove('dragover');
         console.log('File dropped');
         var files = e.dataTransfer.files;
-        if (files.length > 0) {
+        if (files && files.length > 0) {
             loadFont(files[0]);
         }
-    });
+    }, false);
 
     // ファイル選択イベント
     fileInput.addEventListener('change', function(e) {
         console.log('File input changed');
         var files = e.target.files;
-        if (files.length > 0) {
+        if (files && files.length > 0) {
             loadFont(files[0]);
         }
-    });
+    }, false);
 
     function loadFont(file) {
-        console.log('Loading font:', file.name, file.size, 'bytes');
+        if (!file) {
+            console.error('No file provided');
+            return;
+        }
+        
+        console.log('Loading font:', file.name, file.size, 'bytes', 'type:', file.type);
         loading.classList.add('active');
         uploadArea.style.display = 'none';
         
@@ -208,10 +230,11 @@
         };
         
         reader.onload = function(e) {
-            console.log('File loaded, parsing...');
+            console.log('File loaded, size:', e.target.result.byteLength, 'bytes');
             try {
                 currentFont = opentype.parse(e.target.result);
                 console.log('Font parsed successfully');
+                console.log('Font name:', currentFont.names.fullName);
                 console.log('Ascender:', currentFont.ascender);
                 console.log('Descender:', currentFont.descender);
                 console.log('Units per EM:', currentFont.unitsPerEm);
@@ -228,6 +251,7 @@
                 glyphGrid.classList.add('active');
             } catch (error) {
                 console.error('Parse error:', error);
+                console.error('Error stack:', error.stack);
                 alert('フォントの解析に失敗しました: ' + error.message);
                 loading.classList.remove('active');
                 uploadArea.style.display = 'block';
@@ -240,7 +264,11 @@
     function displayFontInfo() {
         var names = currentFont.names;
         var html = '';
-        html += '<div class="info-item"><span class="info-label">フォント名</span><span>' + (names.fullName ? names.fullName.en || names.fullName : 'N/A') + '</span></div>';
+        var fullName = 'N/A';
+        if (names.fullName) {
+            fullName = names.fullName.en || names.fullName;
+        }
+        html += '<div class="info-item"><span class="info-label">フォント名</span><span>' + fullName + '</span></div>';
         html += '<div class="info-item"><span class="info-label">グリフ数</span><span>' + currentFont.numGlyphs + '</span></div>';
         html += '<div class="info-item"><span class="info-label">Units per EM</span><span>' + currentFont.unitsPerEm + '</span></div>';
         html += '<div class="info-item"><span class="info-label">Ascender</span><span>' + currentFont.ascender + '</span></div>';
@@ -254,19 +282,29 @@
         
         if (currentFont.tables.cmap && currentFont.tables.cmap.glyphIndexMap) {
             for (var code in currentFont.tables.cmap.glyphIndexMap) {
-                var idx = currentFont.tables.cmap.glyphIndexMap[code];
-                glyphIndexMap[idx] = parseInt(code);
+                if (currentFont.tables.cmap.glyphIndexMap.hasOwnProperty(code)) {
+                    var idx = currentFont.tables.cmap.glyphIndexMap[code];
+                    glyphIndexMap[idx] = parseInt(code, 10);
+                }
             }
         }
 
         for (var i = 0; i < currentFont.numGlyphs; i++) {
             var glyph = currentFont.glyphs.get(i);
             var unicode = glyphIndexMap[i];
+            var hexString = 'N/A';
+            if (unicode) {
+                var hex = unicode.toString(16).toUpperCase();
+                while (hex.length < 4) {
+                    hex = '0' + hex;
+                }
+                hexString = 'U+' + hex;
+            }
             allGlyphs.push({
                 index: i,
                 glyph: glyph,
                 unicode: unicode,
-                unicodeHex: unicode ? 'U+' + unicode.toString(16).toUpperCase().padStart(4, '0') : 'N/A',
+                unicodeHex: hexString,
                 char: unicode ? String.fromCharCode(unicode) : '',
                 name: glyph.name || 'glyph' + i
             });
@@ -274,11 +312,17 @@
 
         filteredGlyphs = allGlyphs.slice();
         document.getElementById('totalGlyphs').textContent = allGlyphs.length;
-        document.getElementById('unicodeGlyphs').textContent = allGlyphs.filter(function(g) { return g.unicode; }).length;
+        var unicodeCount = 0;
+        for (var i = 0; i < allGlyphs.length; i++) {
+            if (allGlyphs[i].unicode) {
+                unicodeCount++;
+            }
+        }
+        document.getElementById('unicodeGlyphs').textContent = unicodeCount;
     }
 
     function displayGlyphs() {
-        var size = parseInt(glyphSize.value);
+        var size = parseInt(glyphSize.value, 10);
         document.getElementById('sizeValue').textContent = size + 'px';
         var html = '';
         
@@ -310,9 +354,11 @@
 
         var cards = document.querySelectorAll('.glyph-card');
         for (var i = 0; i < cards.length; i++) {
-            cards[i].onclick = function() {
-                openGlyphModal(filteredGlyphs[parseInt(this.getAttribute('data-idx'))]);
-            };
+            (function(index) {
+                cards[index].onclick = function() {
+                    openGlyphModal(filteredGlyphs[parseInt(this.getAttribute('data-idx'), 10)]);
+                };
+            })(i);
         }
     }
 
@@ -336,7 +382,7 @@
     function drawGlyphOnCanvas() {
         if (!currentGlyphData) return;
         
-        var size = parseInt(modalGlyphSize.value);
+        var size = parseInt(modalGlyphSize.value, 10);
         document.getElementById('modalSizeValue').textContent = size + 'px';
         
         var glyph = currentGlyphData.glyph;
@@ -473,13 +519,22 @@
     }
 
     glyphSize.oninput = displayGlyphs;
+    
     searchBox.oninput = function(e) {
         var query = e.target.value.toLowerCase();
-        filteredGlyphs = query ? allGlyphs.filter(function(item) {
-            return item.unicodeHex.toLowerCase().indexOf(query) >= 0 ||
-                   item.name.toLowerCase().indexOf(query) >= 0 ||
-                   item.char.indexOf(query) >= 0;
-        }) : allGlyphs.slice();
+        if (query) {
+            filteredGlyphs = [];
+            for (var i = 0; i < allGlyphs.length; i++) {
+                var item = allGlyphs[i];
+                if (item.unicodeHex.toLowerCase().indexOf(query) >= 0 ||
+                    item.name.toLowerCase().indexOf(query) >= 0 ||
+                    item.char.indexOf(query) >= 0) {
+                    filteredGlyphs.push(item);
+                }
+            }
+        } else {
+            filteredGlyphs = allGlyphs.slice();
+        }
         displayGlyphs();
     };
     
