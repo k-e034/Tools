@@ -161,7 +161,6 @@
             z-index: 2;
             outline: 2px solid var(--guide-color);
         }
-        /* SVG内のパススタイル */
         .glyph-svg path {
             fill: currentColor;
         }
@@ -253,7 +252,6 @@
         .toggle-label { display: block; margin-bottom: 0.5rem; cursor: pointer; color: var(--text-color); font-size: 0.9rem;}
         .toggle-label input { margin-right: 0.5rem; }
 
-        /* Loading Overlay */
         #loader {
             position: fixed; top:0; left:0; width:100%; height:100%;
             background: var(--bg-color); z-index: 2000;
@@ -283,7 +281,7 @@
             <span class="subtitle ui-mono">TYPEFACE INSPECTION FACILITY</span>
         </div>
         <div class="ui-mono" style="text-align: right; color: var(--dim-color);">
-            BUILD: 2.4.1 (FIXED)<br>OPENTYPE.JS
+            BUILD: 2.4.2 (HOTFIXED)<br>OPENTYPE.JS
         </div>
     </header>
 
@@ -378,7 +376,8 @@
                     </label>
                 </div>
                 <p class="ui-mono dim" style="margin-top:2rem; font-size:0.7rem; line-height:1.5;">
-                    *Blue lines indicate Ascender, Baseline, and Descender.
+                    *Cyan lines indicate Metrics.<br>
+                    *Canvas is scaled to design units.
                 </p>
             </aside>
         </div>
@@ -448,16 +447,11 @@
             loader.style.display = 'none';
         }
 
-        /* --- 修正ポイント: 正しいSVG構造の生成 --- */
         function renderNextBatch() {
             const fragment = document.createDocumentFragment();
             const end = Math.min(renderOffset + RENDER_BATCH, glyphsList.length);
-            
-            // 描画設定（グリッドセル内での表示用）
-            const boxSize = 60; // SVGのビューボックスサイズ
-            const fontSize = 40; // 描画するフォントサイズ
-            
-            // ベースライン位置の調整 (セルの下の方)
+            const boxSize = 60; 
+            const fontSize = 40; 
             const baselineY = 48; 
 
             for (let i = renderOffset; i < end; i++) {
@@ -468,17 +462,11 @@
                 cell.className = 'glyph-cell';
                 cell.onclick = () => openModal(i);
 
-                // 中央寄せのためのX座標計算
-                // (boxSize - (advanceWidth * scale)) / 2
                 const scale = fontSize / font.unitsPerEm;
                 const glyphWidth = glyph.advanceWidth * scale;
                 const xPos = (boxSize - glyphWidth) / 2;
 
-                // Pathオブジェクトを取得
                 const path = glyph.getPath(xPos, baselineY, fontSize);
-                
-                // 【重要】SVGタグの中にpathデータを埋め込む
-                // opentype.jsのtoSVGは<path d="..."/>を返すため、親の<svg>が必要
                 const svgHTML = `
                     <svg width="100%" height="100%" viewBox="0 0 ${boxSize} ${boxSize}" class="glyph-svg">
                         ${path.toSVG(2)}
@@ -551,50 +539,67 @@
 
             ctx.clearRect(0, 0, w, h);
 
+            // 画面の高さにフォントの高さ（Ascender + Descender）が収まるようにスケール計算
             const fontHeight = font.ascender - font.descender;
             const scale = (h * 0.7) / fontHeight;
 
-            // 中央揃え計算
+            // 座標原点を画面中央に持ってくる
             const originX = w / 2 - (g.advanceWidth * scale) / 2; 
             const originY = h / 2 + ((font.ascender + font.descender)/2 * scale); 
 
             ctx.save();
             ctx.translate(originX, originY);
             
+            // 補助線（メトリクス）の描画
             if (showMetrics) {
                 ctx.lineWidth = 1;
                 ctx.strokeStyle = "rgba(0, 255, 204, 0.5)"; 
                 
-                drawLine(-1000, 0, 1000, 0, "#fff", 2); // Baseline
+                drawLine(-2000, 0, 2000, 0, "#fff", 2); // Baseline
 
                 const yAsc = -font.ascender * scale;
-                drawLine(-1000, yAsc, 1000, yAsc);
+                drawLine(-2000, yAsc, 2000, yAsc);
                 ctx.fillStyle = "rgba(0,255,204,0.7)";
                 ctx.fillText("Ascender", -originX + 10, yAsc - 5);
 
                 const yDesc = -font.descender * scale;
-                drawLine(-1000, yDesc, 1000, yDesc);
+                drawLine(-2000, yDesc, 2000, yDesc);
                 ctx.fillText("Descender", -originX + 10, yDesc - 5);
 
-                drawLine(0, -1000, 0, 1000); // LSB
+                // 横幅の境界線
+                drawLine(0, -2000, 0, 2000); // LSB (0地点)
                 const xAdv = g.advanceWidth * scale;
-                drawLine(xAdv, -1000, xAdv, 1000); // RSB
+                drawLine(xAdv, -2000, xAdv, 2000); // RSB
                 
+                // メトリクスエリアの薄い塗り
                 ctx.fillStyle = "rgba(0, 255, 204, 0.05)";
                 ctx.fillRect(0, yAsc, xAdv, yDesc - yAsc);
             }
 
             // フォント座標系へ変換（Y反転）
+            // scale倍することで、Canvas上の1単位が1スクリーンピクセルに近くなるよう調整
             ctx.scale(scale, -scale); 
 
+            /* * 【修正箇所】
+             * opentype.jsのdrawメソッドの第4引数(fontSize)には、
+             * 現在の座標系における「1emあたりのサイズ」を渡す必要があります。
+             * ここでは scale() ですでに座標系を縮小しているため、
+             * フォント本来の座標値(1000〜2048など)で描画するには、
+             * fontSizeに font.unitsPerEm を渡します。
+             */
+            const drawSize = font.unitsPerEm; 
+
             if (fillGlyph) {
-                g.draw(ctx, 0, 0, 1, {fill: '#fff'}); 
+                // 白い塗り
+                g.draw(ctx, 0, 0, drawSize, {fill: '#fff'}); 
             } else {
-                 g.draw(ctx, 0, 0, 1, {fill: null, stroke: '#fff', strokeWidth: 2/scale}); 
+                // アウトラインのみ。線の太さもスケーリングを考慮して逆算
+                g.draw(ctx, 0, 0, drawSize, {fill: null, stroke: '#fff', strokeWidth: 2/scale}); 
             }
 
             if (showPoints) {
-                g.drawPoints(ctx, 0, 0, 1, {fill: '#ff0055', size: 4/scale});
+                // 制御点表示
+                g.drawPoints(ctx, 0, 0, drawSize, {fill: '#ff0055', size: 4/scale});
             }
 
             ctx.restore();
