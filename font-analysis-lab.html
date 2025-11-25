@@ -34,12 +34,12 @@
             overflow-x: hidden;
         }
 
-        /* --- UI Utility & Typography --- */
+        /* --- UI Utility --- */
         .ui-mono { font-family: var(--ui-font); font-size: 0.8rem; letter-spacing: 0.05em; }
         .dim { color: var(--dim-color); }
         h1, h2, h3 { margin: 0; font-weight: normal; }
 
-        /* --- Header Section --- */
+        /* --- Header --- */
         header {
             border-bottom: 1px solid var(--line-color);
             padding: 2rem;
@@ -50,7 +50,7 @@
         .brand { font-size: 2rem; letter-spacing: 0.1em; }
         .subtitle { display: block; margin-top: 0.5rem; font-size: 0.8rem; color: var(--dim-color); }
 
-        /* --- Upload Area (Drop Zone) --- */
+        /* --- Upload Area --- */
         .upload-section {
             padding: 4rem 2rem;
             border-bottom: 1px solid var(--line-color);
@@ -64,17 +64,15 @@
             margin: 0 auto;
             transition: all 0.3s ease;
             cursor: pointer;
-            position: relative;
         }
         .drop-zone:hover {
             border-color: var(--text-color);
             background: rgba(255,255,255,0.05);
         }
-        .drop-zone.active { /* ドラッグ中 */
+        .drop-zone.active {
             border-color: var(--guide-color);
             background: rgba(0, 255, 204, 0.05);
         }
-        
         #fileInput { display: none; }
         .btn-upload {
             display: inline-block;
@@ -90,7 +88,7 @@
         }
         .btn-upload:hover { opacity: 0.8; }
 
-        /* --- Control & Info Bar --- */
+        /* --- Dashboard --- */
         .dashboard-bar {
             display: grid;
             grid-template-columns: 2fr 1fr 1fr;
@@ -133,9 +131,8 @@
             font-family: var(--ui-font);
             width: 150px;
         }
-        input[type="text"]:focus { border-color: #fff; }
 
-        /* --- Glyph Grid --- */
+        /* --- Grid --- */
         .glyph-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
@@ -152,7 +149,6 @@
             justify-content: center;
             position: relative;
             cursor: pointer;
-            transition: background 0.2s, color 0.2s;
             overflow: hidden;
         }
         .glyph-cell:hover {
@@ -161,19 +157,14 @@
             z-index: 2;
             outline: 2px solid var(--guide-color);
         }
-        .glyph-svg path {
-            fill: currentColor;
-        }
+        .glyph-svg path { fill: currentColor; }
         .g-meta {
             position: absolute;
-            bottom: 4px;
-            left: 4px;
-            font-size: 0.6rem;
-            font-family: var(--ui-font);
-            opacity: 0.5;
+            bottom: 4px; left: 4px;
+            font-size: 0.6rem; font-family: var(--ui-font); opacity: 0.5;
         }
 
-        /* --- Modal (Microscope View) --- */
+        /* --- Modal --- */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -183,29 +174,28 @@
             display: none;
             justify-content: center;
             align-items: center;
-            opacity: 0;
-            transition: opacity 0.3s;
+            opacity: 0; transition: opacity 0.3s;
         }
         .modal-overlay.active { display: flex; opacity: 1; }
 
         .modal-window {
-            width: 90vw;
-            max-width: 1000px;
+            width: 90vw; max-width: 1200px;
             height: 85vh;
             background: var(--panel-bg);
             border: 1px solid var(--line-color);
             display: grid;
-            grid-template-columns: 2fr 1fr;
+            grid-template-columns: 1fr 350px;
             box-shadow: 0 0 50px rgba(0,0,0,0.8);
         }
 
         .modal-visual {
             position: relative;
             background-color: #080808;
+            /* Grid Background */
             background-image: 
-                linear-gradient(var(--line-color) 1px, transparent 1px),
-                linear-gradient(90deg, var(--line-color) 1px, transparent 1px);
-            background-size: 20px 20px;
+                linear-gradient(rgba(51, 51, 51, 0.5) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(51, 51, 51, 0.5) 1px, transparent 1px);
+            background-size: 40px 40px;
             background-position: center center;
             display: flex;
             align-items: center;
@@ -215,8 +205,7 @@
         }
         canvas { 
             box-shadow: 0 0 20px rgba(0,0,0,0.5); 
-            max-width: 100%;
-            max-height: 100%;
+            max-width: 100%; max-height: 100%;
         }
 
         .modal-sidebar {
@@ -226,13 +215,10 @@
         }
         .modal-header {
             border-bottom: 1px solid var(--line-color);
-            padding-bottom: 1rem;
-            margin-bottom: 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
+            padding-bottom: 1rem; margin-bottom: 1.5rem;
+            display: flex; justify-content: space-between; align-items: flex-start;
         }
-        .glyph-large-title { font-size: 2rem; margin-bottom: 0.5rem; font-family: var(--main-font); }
+        .glyph-large-title { font-size: 3rem; margin-bottom: 0.5rem; font-family: var(--main-font); line-height: 1;}
         .close-btn {
             background: none; border: 1px solid var(--dim-color); color: var(--text-color);
             width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center;
@@ -261,7 +247,7 @@
         .loader-text { font-family: var(--ui-font); animation: blink 1s infinite; margin-top: 1rem;}
         @keyframes blink { 50% { opacity: 0.5; } }
 
-        @media (max-width: 768px) {
+        @media (max-width: 800px) {
             .modal-window { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
             .modal-visual { border-right: none; border-bottom: 1px solid var(--line-color); }
             .dashboard-bar { grid-template-columns: 1fr; }
@@ -281,7 +267,7 @@
             <span class="subtitle ui-mono">TYPEFACE INSPECTION FACILITY</span>
         </div>
         <div class="ui-mono" style="text-align: right; color: var(--dim-color);">
-            BUILD: 2.4.2 (HOTFIXED)<br>OPENTYPE.JS
+            BUILD: 3.0.0 (STABLE)<br>OPENTYPE.JS
         </div>
     </header>
 
@@ -296,7 +282,6 @@
     </div>
 
     <div id="mainInterface" style="display: none;">
-        
         <div class="dashboard-bar">
             <div class="dash-item">
                 <span class="dash-label ui-mono">FONT NAME</span>
@@ -317,7 +302,6 @@
         <div style="padding: 2rem; text-align: center;">
             <button id="loadMoreBtn" class="btn-upload" style="background:transparent; border:1px solid #333; color:#fff;">LOAD NEXT 200</button>
         </div>
-
     </div>
 
     <div class="modal-overlay" id="modalOverlay">
@@ -355,12 +339,8 @@
                         <span class="metric-val" id="mLSB">0</span>
                     </div>
                     <div class="metric-row">
-                        <span class="metric-label">xMin / xMax</span>
-                        <span class="metric-val" id="mXBounds">0 / 0</span>
-                    </div>
-                     <div class="metric-row">
-                        <span class="metric-label">yMin / yMax</span>
-                        <span class="metric-val" id="mYBounds">0 / 0</span>
+                        <span class="metric-label">Bounding Box</span>
+                        <span class="metric-val" id="mBounds" style="font-size:0.7rem;">0,0,0,0</span>
                     </div>
                 </div>
 
@@ -375,10 +355,6 @@
                         <input type="checkbox" id="showPointsCheck"> SHOW POINTS
                     </label>
                 </div>
-                <p class="ui-mono dim" style="margin-top:2rem; font-size:0.7rem; line-height:1.5;">
-                    *Cyan lines indicate Metrics.<br>
-                    *Canvas is scaled to design units.
-                </p>
             </aside>
         </div>
     </div>
@@ -415,7 +391,7 @@
                     font = opentype.parse(e.target.result);
                     initDashboard();
                 } catch (err) {
-                    alert('Font parsing error: ' + err.message);
+                    alert('Error: ' + err.message);
                     loader.style.display = 'none';
                 }
             };
@@ -423,7 +399,7 @@
         }
 
         function initDashboard() {
-            const name = font.names.postScriptName ? font.names.postScriptName.en : (font.names.fullName.en || 'Unknown Font');
+            const name = font.names.postScriptName ? font.names.postScriptName.en : (font.names.fullName.en || 'Unknown');
             document.getElementById('fontNameDisplay').textContent = name;
             document.getElementById('glyphCountDisplay').textContent = font.numGlyphs;
             
@@ -472,22 +448,18 @@
                         ${path.toSVG(2)}
                     </svg>
                 `;
-                
                 cell.innerHTML = svgHTML + `<div class="g-meta">${item.unicode}</div>`;
                 fragment.appendChild(cell);
             }
 
             gridContainer.appendChild(fragment);
             renderOffset = end;
-
-            if (renderOffset >= glyphsList.length) {
-                document.getElementById('loadMoreBtn').style.display = 'none';
-            }
+            if (renderOffset >= glyphsList.length) document.getElementById('loadMoreBtn').style.display = 'none';
         }
 
         document.getElementById('loadMoreBtn').addEventListener('click', renderNextBatch);
 
-        /* --- Modal Logic (Canvas) --- */
+        /* --- Modal Logic (Manual Rendering) --- */
         const modal = document.getElementById('modalOverlay');
         const canvas = document.getElementById('glyphCanvas');
         const ctx = canvas.getContext('2d');
@@ -505,8 +477,8 @@
             document.getElementById('mLSB').textContent = g.leftSideBearing || 0;
             
             const bb = g.getBoundingBox();
-            document.getElementById('mXBounds').textContent = `${Math.round(bb.x1)} / ${Math.round(bb.x2)}`;
-            document.getElementById('mYBounds').textContent = `${Math.round(bb.y1)} / ${Math.round(bb.y2)}`;
+            document.getElementById('mBounds').textContent = 
+                `${Math.round(bb.x1)}, ${Math.round(bb.y1)}, ${Math.round(bb.x2)}, ${Math.round(bb.y2)}`;
 
             modal.classList.add('active');
             fitCanvas();
@@ -515,8 +487,7 @@
 
         window.addEventListener('resize', () => {
             if(modal.classList.contains('active')) {
-                fitCanvas();
-                drawAnalysis();
+                fitCanvas(); drawAnalysis();
             }
         });
 
@@ -526,124 +497,150 @@
             canvas.height = container.clientHeight;
         }
 
+        /* * レンダリングの中核関数
+         * opentype.jsのdrawを使わず、手動でパスを描画することで
+         * 座標変換と色の問題を完全に解決する
+         */
         function drawAnalysis() {
             if (currentGlyphIndex < 0 || !font) return;
             
             const g = glyphsList[currentGlyphIndex].glyph;
             const w = canvas.width;
             const h = canvas.height;
+            const upm = font.unitsPerEm;
             
             const showMetrics = document.getElementById('showMetricsCheck').checked;
             const fillGlyph = document.getElementById('fillGlyphCheck').checked;
             const showPoints = document.getElementById('showPointsCheck').checked;
 
+            // 1. 画面クリア
             ctx.clearRect(0, 0, w, h);
 
-            // 画面の高さにフォントの高さ（Ascender + Descender）が収まるようにスケール計算
+            // 2. スケール計算: 画面の高さの60%にフォントの高さ(Ascender-Descender)を収める
             const fontHeight = font.ascender - font.descender;
-            const scale = (h * 0.7) / fontHeight;
+            const scale = (h * 0.6) / fontHeight;
 
-            // 座標原点を画面中央に持ってくる
-            const originX = w / 2 - (g.advanceWidth * scale) / 2; 
-            const originY = h / 2 + ((font.ascender + font.descender)/2 * scale); 
+            // 3. 原点計算:
+            // X: 画面中央 - (文字幅の半分)
+            // Y: 画面中央 + (フォント上下中心のズレ補正)
+            const glyphCenterX = (g.advanceWidth * scale) / 2;
+            const fontCenterY = ((font.ascender + font.descender) / 2) * scale;
+            
+            const originX = (w / 2) - glyphCenterX;
+            const originY = (h / 2) + fontCenterY; // YはCanvas座標系(下プラス)なので加算して下げる
 
             ctx.save();
-            ctx.translate(originX, originY);
             
-            // 補助線（メトリクス）の描画
+            // 4. 座標変換の適用
+            ctx.translate(originX, originY); // 原点移動
+            ctx.scale(scale, -scale); // Y軸反転（これで上方向がプラスになる）
+
+            // 5. ガイドライン描画 (座標系はフォント単位)
             if (showMetrics) {
-                ctx.lineWidth = 1;
-                ctx.strokeStyle = "rgba(0, 255, 204, 0.5)"; 
+                const lineW = 1 / scale; // 1pxに見える太さ
+                const bound = 50000; // 十分長い線
+
+                // Baseline (y=0)
+                drawLine(-bound, 0, bound, 0, "rgba(255,255,255,0.8)", lineW * 2); 
                 
-                drawLine(-2000, 0, 2000, 0, "#fff", 2); // Baseline
+                // Ascender
+                const asc = font.ascender;
+                drawLine(-bound, asc, bound, asc, "rgba(0, 255, 204, 0.5)", lineW);
+                drawLabel("Ascender", -500, asc + 20, scale, "rgba(0, 255, 204, 0.7)");
 
-                const yAsc = -font.ascender * scale;
-                drawLine(-2000, yAsc, 2000, yAsc);
-                ctx.fillStyle = "rgba(0,255,204,0.7)";
-                ctx.fillText("Ascender", -originX + 10, yAsc - 5);
+                // Descender
+                const desc = font.descender;
+                drawLine(-bound, desc, bound, desc, "rgba(0, 255, 204, 0.5)", lineW);
+                drawLabel("Descender", -500, desc - 100, scale, "rgba(0, 255, 204, 0.7)");
 
-                const yDesc = -font.descender * scale;
-                drawLine(-2000, yDesc, 2000, yDesc);
-                ctx.fillText("Descender", -originX + 10, yDesc - 5);
-
-                // 横幅の境界線
-                drawLine(0, -2000, 0, 2000); // LSB (0地点)
-                const xAdv = g.advanceWidth * scale;
-                drawLine(xAdv, -2000, xAdv, 2000); // RSB
-                
-                // メトリクスエリアの薄い塗り
-                ctx.fillStyle = "rgba(0, 255, 204, 0.05)";
-                ctx.fillRect(0, yAsc, xAdv, yDesc - yAsc);
+                // Width lines
+                drawLine(0, -bound, 0, bound, "rgba(0, 255, 204, 0.5)", lineW); // LSB
+                drawLine(g.advanceWidth, -bound, g.advanceWidth, bound, "rgba(0, 255, 204, 0.5)", lineW); // Width
             }
 
-            // フォント座標系へ変換（Y反転）
-            // scale倍することで、Canvas上の1単位が1スクリーンピクセルに近くなるよう調整
-            ctx.scale(scale, -scale); 
-
-            /* * 【修正箇所】
-             * opentype.jsのdrawメソッドの第4引数(fontSize)には、
-             * 現在の座標系における「1emあたりのサイズ」を渡す必要があります。
-             * ここでは scale() ですでに座標系を縮小しているため、
-             * フォント本来の座標値(1000〜2048など)で描画するには、
-             * fontSizeに font.unitsPerEm を渡します。
-             */
-            const drawSize = font.unitsPerEm; 
+            // 6. グリフの描画 (手動パス構築)
+            // getPath(x, y, fontSize) -> fontSizeにupmを渡すとスケール1の生座標が返る
+            const path = g.getPath(0, 0, upm);
+            
+            ctx.beginPath();
+            // PathコマンドをCanvas APIに変換
+            path.commands.forEach(cmd => {
+                switch (cmd.type) {
+                    case 'M': ctx.moveTo(cmd.x, cmd.y); break;
+                    case 'L': ctx.lineTo(cmd.x, cmd.y); break;
+                    case 'Q': ctx.quadraticCurveTo(cmd.x1, cmd.y1, cmd.x, cmd.y); break;
+                    case 'C': ctx.bezierCurveTo(cmd.x1, cmd.y1, cmd.x2, cmd.y2, cmd.x, cmd.y); break;
+                    case 'Z': ctx.closePath(); break;
+                }
+            });
 
             if (fillGlyph) {
-                // 白い塗り
-                g.draw(ctx, 0, 0, drawSize, {fill: '#fff'}); 
+                ctx.fillStyle = "#FFFFFF"; // ★ここで色を白に指定
+                ctx.fill();
             } else {
-                // アウトラインのみ。線の太さもスケーリングを考慮して逆算
-                g.draw(ctx, 0, 0, drawSize, {fill: null, stroke: '#fff', strokeWidth: 2/scale}); 
+                ctx.strokeStyle = "#FFFFFF";
+                ctx.lineWidth = 2 / scale;
+                ctx.stroke();
             }
 
+            // 7. 制御点（Points）の描画
             if (showPoints) {
-                // 制御点表示
-                g.drawPoints(ctx, 0, 0, drawSize, {fill: '#ff0055', size: 4/scale});
+                const ptSize = 5 / scale; // 点の大きさ
+                ctx.fillStyle = "#FF0055";
+                
+                // glyph.path.commandsから座標を抽出して描画
+                path.commands.forEach(cmd => {
+                    if (cmd.x !== undefined) drawPoint(cmd.x, cmd.y, ptSize);
+                    if (cmd.x1 !== undefined) drawPoint(cmd.x1, cmd.y1, ptSize);
+                    if (cmd.x2 !== undefined) drawPoint(cmd.x2, cmd.y2, ptSize);
+                });
             }
 
             ctx.restore();
         }
 
+        // ヘルパー関数
         function drawLine(x1, y1, x2, y2, color, width) {
             ctx.beginPath();
             ctx.moveTo(x1, y1);
             ctx.lineTo(x2, y2);
-            if(color) ctx.strokeStyle = color;
-            if(width) ctx.lineWidth = width;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
             ctx.stroke();
-            ctx.strokeStyle = "rgba(0, 255, 204, 0.5)"; 
-            ctx.lineWidth = 1;
         }
 
-        document.getElementById('closeModal').onclick = () => {
-            modal.classList.remove('active');
-        };
-        modal.onclick = (e) => {
-            if (e.target === modal) modal.classList.remove('active');
-        };
-        
-        document.querySelectorAll('.toggle-group input').forEach(input => {
-            input.addEventListener('change', drawAnalysis);
-        });
+        function drawPoint(x, y, size) {
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fill();
+        }
 
-        document.getElementById('searchInput').addEventListener('input', (e) => {
-            const val = e.target.value.toUpperCase();
-            const cells = gridContainer.getElementsByClassName('glyph-cell');
-            Array.from(cells).forEach(cell => {
-                const meta = cell.querySelector('.g-meta').textContent;
-                if (meta.includes(val)) {
-                    cell.style.display = 'flex';
-                } else {
-                    cell.style.display = 'none';
-                }
-            });
-        });
+        // テキストを描画するためのヘルパー (反転したY軸に対応して文字を正立させる)
+        function drawLabel(text, x, y, scale, color) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(1, -1); // 文字だけY軸反転を戻す
+            ctx.fillStyle = color;
+            ctx.font = `${12 / scale}px "Roboto Mono"`; // スケールに依存しない一定の見た目のサイズ
+            ctx.fillText(text, 0, 0);
+            ctx.restore();
+        }
 
+        /* --- UI Events --- */
+        document.getElementById('closeModal').onclick = () => modal.classList.remove('active');
+        modal.onclick = (e) => { if (e.target === modal) modal.classList.remove('active'); };
+        document.querySelectorAll('.toggle-group input').forEach(input => input.addEventListener('change', drawAnalysis));
         document.getElementById('sizeSlider').addEventListener('input', (e) => {
            const size = e.target.value;
            gridContainer.style.gridTemplateColumns = `repeat(auto-fill, minmax(${size*1.5}px, 1fr))`;
         });
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const val = e.target.value.toUpperCase();
+            Array.from(gridContainer.children).forEach(cell => {
+                cell.style.display = cell.innerText.includes(val) ? 'flex' : 'none';
+            });
+        });
+
     </script>
 </body>
 </html>
