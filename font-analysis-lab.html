@@ -18,7 +18,7 @@
             --text-color: #e0e0e0;
             --accent-color: #ffffff;
             --dim-color: #666;
-            --guide-color: #00ffcc; /* メトリクス線用 */
+            --guide-color: #00ffcc;
             --main-font: 'Shippori Mincho B1', serif;
             --ui-font: 'Roboto Mono', monospace;
         }
@@ -110,7 +110,6 @@
         .dash-label { font-size: 0.7rem; color: var(--dim-color); margin-bottom: 0.3rem; }
         .dash-value { font-family: var(--ui-font); font-size: 1rem; color: var(--text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
-        /* 検索ボックスなど */
         .controls-area {
             display: flex;
             gap: 1rem;
@@ -160,12 +159,11 @@
             background: var(--text-color);
             color: var(--bg-color);
             z-index: 2;
-            outline: 2px solid var(--guide-color); /* ホバー時の強調 */
+            outline: 2px solid var(--guide-color);
         }
-        .g-char {
-            font-size: 2.5rem;
-            line-height: 1;
-            pointer-events: none;
+        /* SVG内のパススタイル */
+        .glyph-svg path {
+            fill: currentColor;
         }
         .g-meta {
             position: absolute;
@@ -183,7 +181,7 @@
             background: rgba(0,0,0,0.9);
             backdrop-filter: blur(10px);
             z-index: 1000;
-            display: none; /* JSで制御 */
+            display: none;
             justify-content: center;
             align-items: center;
             opacity: 0;
@@ -198,15 +196,13 @@
             background: var(--panel-bg);
             border: 1px solid var(--line-color);
             display: grid;
-            grid-template-columns: 2fr 1fr; /* 左：Canvas, 右：Info */
+            grid-template-columns: 2fr 1fr;
             box-shadow: 0 0 50px rgba(0,0,0,0.8);
         }
 
-        /* 左側：Canvasエリア */
         .modal-visual {
             position: relative;
-            background-color: #080808; /* Canvas背景 */
-            /* 方眼紙のようなグリッド背景 */
+            background-color: #080808;
             background-image: 
                 linear-gradient(var(--line-color) 1px, transparent 1px),
                 linear-gradient(90deg, var(--line-color) 1px, transparent 1px);
@@ -224,7 +220,6 @@
             max-height: 100%;
         }
 
-        /* 右側：情報パネル */
         .modal-sidebar {
             padding: 2rem;
             overflow-y: auto;
@@ -268,14 +263,12 @@
         .loader-text { font-family: var(--ui-font); animation: blink 1s infinite; margin-top: 1rem;}
         @keyframes blink { 50% { opacity: 0.5; } }
 
-        /* レスポンシブ対応 */
         @media (max-width: 768px) {
             .modal-window { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
             .modal-visual { border-right: none; border-bottom: 1px solid var(--line-color); }
             .dashboard-bar { grid-template-columns: 1fr; }
             .dash-item:not(:first-child) { display: none; }
         }
-
     </style>
 </head>
 <body>
@@ -290,7 +283,7 @@
             <span class="subtitle ui-mono">TYPEFACE INSPECTION FACILITY</span>
         </div>
         <div class="ui-mono" style="text-align: right; color: var(--dim-color);">
-            BUILD: 2.4.0<br>OPENTYPE.JS
+            BUILD: 2.4.1 (FIXED)<br>OPENTYPE.JS
         </div>
     </header>
 
@@ -321,8 +314,7 @@
             </div>
         </div>
 
-        <div class="glyph-grid" id="glyphGridContainer">
-            </div>
+        <div class="glyph-grid" id="glyphGridContainer"></div>
 
         <div style="padding: 2rem; text-align: center;">
             <button id="loadMoreBtn" class="btn-upload" style="background:transparent; border:1px solid #333; color:#fff;">LOAD NEXT 200</button>
@@ -335,7 +327,6 @@
             <div class="modal-visual" id="canvasContainer">
                 <canvas id="glyphCanvas"></canvas>
             </div>
-            
             <aside class="modal-sidebar">
                 <div class="modal-header">
                     <div>
@@ -386,21 +377,18 @@
                         <input type="checkbox" id="showPointsCheck"> SHOW POINTS
                     </label>
                 </div>
-
                 <p class="ui-mono dim" style="margin-top:2rem; font-size:0.7rem; line-height:1.5;">
-                    *Blue lines indicate Ascender, Baseline, and Descender.<br>
-                    *Vertical lines indicate Advance Width boundaries.
+                    *Blue lines indicate Ascender, Baseline, and Descender.
                 </p>
             </aside>
         </div>
     </div>
 
     <script>
-        /* --- 1. 変数と初期設定 --- */
         let font = null;
-        let glyphsList = []; // 全グリフデータ
+        let glyphsList = [];
         let renderOffset = 0;
-        const RENDER_BATCH = 200; // 一度に描画する個数（パフォーマンス対策）
+        const RENDER_BATCH = 200;
         let currentGlyphIndex = -1;
 
         const fileInput = document.getElementById('fileInput');
@@ -409,8 +397,6 @@
         const mainInterface = document.getElementById('mainInterface');
         const loader = document.getElementById('loader');
 
-        /* --- 2. ファイル読み込み処理 --- */
-        // ドラッグ＆ドロップ挙動
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault(); dropZone.classList.add('active');
         });
@@ -423,12 +409,10 @@
 
         function handleFile(file) {
             if (!file) return;
-            loader.style.display = 'flex'; // ローディング表示
-
+            loader.style.display = 'flex';
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    // opentype.jsによる解析
                     font = opentype.parse(e.target.result);
                     initDashboard();
                 } catch (err) {
@@ -439,20 +423,11 @@
             reader.readAsArrayBuffer(file);
         }
 
-        /* --- 3. ダッシュボード初期化 --- */
         function initDashboard() {
-            // 基本情報の表示
             const name = font.names.postScriptName ? font.names.postScriptName.en : (font.names.fullName.en || 'Unknown Font');
             document.getElementById('fontNameDisplay').textContent = name;
             document.getElementById('glyphCountDisplay').textContent = font.numGlyphs;
             
-            // UIフォントではなく、アップロードされたフォントをグリッドに適用するためのCSS生成
-            // (FontFace APIを使用)
-            // Note: opentype.jsのオブジェクトから直接ArrayBufferを取得してFontFaceを作るのは少し複雑なため、
-            // 簡易的に「グリフのパスデータ(SVG)」を使ってグリッドを表示する方式を採用します。
-            // ※これにより、システムにフォントが入っていなくても表示されます。
-
-            // グリフデータの抽出
             glyphsList = [];
             for (let i = 0; i < font.numGlyphs; i++) {
                 const glyph = font.glyphs.get(i);
@@ -464,66 +439,59 @@
                 });
             }
 
-            // UI切り替え
             document.getElementById('uploadArea').style.display = 'none';
             mainInterface.style.display = 'block';
             
             renderOffset = 0;
-            gridContainer.innerHTML = ''; // クリア
+            gridContainer.innerHTML = '';
             renderNextBatch();
-            
             loader.style.display = 'none';
         }
 
-        /* --- 4. グリッド描画（SVG生成） --- */
+        /* --- 修正ポイント: 正しいSVG構造の生成 --- */
         function renderNextBatch() {
             const fragment = document.createDocumentFragment();
             const end = Math.min(renderOffset + RENDER_BATCH, glyphsList.length);
-            const size = parseInt(document.getElementById('sizeSlider').value);
+            
+            // 描画設定（グリッドセル内での表示用）
+            const boxSize = 60; // SVGのビューボックスサイズ
+            const fontSize = 40; // 描画するフォントサイズ
+            
+            // ベースライン位置の調整 (セルの下の方)
+            const baselineY = 48; 
 
             for (let i = renderOffset; i < end; i++) {
                 const item = glyphsList[i];
                 const glyph = item.glyph;
 
-                // セル作成
                 const cell = document.createElement('div');
                 cell.className = 'glyph-cell';
                 cell.onclick = () => openModal(i);
 
-                // SVG生成（opentype.jsのgetPath機能を使用）
-                // 枠内に収まるように簡易的に調整
-                const path = glyph.getPath(0, 0, 48); // 48px基準でパス取得
-                // バウンディングボックス取得して中央寄せ計算
-                const bb = glyph.getBoundingBox();
-                const glyphW = (bb.x2 - bb.x1) * (48 / font.unitsPerEm);
-                
-                // SVG要素を作成
-                const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-                svg.setAttribute("width", "60"); 
-                svg.setAttribute("height", "60");
-                svg.setAttribute("viewBox", "0 0 60 60");
-                svg.style.pointerEvents = "none";
+                // 中央寄せのためのX座標計算
+                // (boxSize - (advanceWidth * scale)) / 2
+                const scale = fontSize / font.unitsPerEm;
+                const glyphWidth = glyph.advanceWidth * scale;
+                const xPos = (boxSize - glyphWidth) / 2;
 
-                // パス変換 (SVG path string)
-                // opentype.jsのgetPathは (x,y) をベースライン基準で返すため、
-                // 表示用にY軸を反転させて下にずらす必要がある
-                // ここでは簡易表示のため、path.toSVG()を利用しつつCSSで調整する手もあるが、
-                // getPathのメソッド引数で調整する。
-                // getPath(x, y, fontSize) -> yはベースラインの位置。
-                // 60pxのボックスの中央(30)より少し下(45あたり)をベースラインとする。
-                const renderPath = glyph.getPath(10, 45, 40); 
+                // Pathオブジェクトを取得
+                const path = glyph.getPath(xPos, baselineY, fontSize);
                 
-                // 文字色指定（fill）
-                renderPath.fill = "currentColor"; 
+                // 【重要】SVGタグの中にpathデータを埋め込む
+                // opentype.jsのtoSVGは<path d="..."/>を返すため、親の<svg>が必要
+                const svgHTML = `
+                    <svg width="100%" height="100%" viewBox="0 0 ${boxSize} ${boxSize}" class="glyph-svg">
+                        ${path.toSVG(2)}
+                    </svg>
+                `;
                 
-                cell.innerHTML = renderPath.toSVG() + `<div class="g-meta">${item.unicode}</div>`;
+                cell.innerHTML = svgHTML + `<div class="g-meta">${item.unicode}</div>`;
                 fragment.appendChild(cell);
             }
 
             gridContainer.appendChild(fragment);
             renderOffset = end;
 
-            // Load Moreボタンの制御
             if (renderOffset >= glyphsList.length) {
                 document.getElementById('loadMoreBtn').style.display = 'none';
             }
@@ -531,8 +499,7 @@
 
         document.getElementById('loadMoreBtn').addEventListener('click', renderNextBatch);
 
-
-        /* --- 5. モーダル（詳細ビュー）の描画ロジック --- */
+        /* --- Modal Logic (Canvas) --- */
         const modal = document.getElementById('modalOverlay');
         const canvas = document.getElementById('glyphCanvas');
         const ctx = canvas.getContext('2d');
@@ -542,7 +509,6 @@
             const item = glyphsList[index];
             const g = item.glyph;
 
-            // 情報表示更新
             document.getElementById('modalGlyphChar').textContent = item.unicode !== '---' ? String.fromCharCode(item.glyph.unicode) : '';
             document.getElementById('modalGlyphName').textContent = item.name;
             document.getElementById('mUnicode').textContent = item.unicode;
@@ -555,13 +521,10 @@
             document.getElementById('mYBounds').textContent = `${Math.round(bb.y1)} / ${Math.round(bb.y2)}`;
 
             modal.classList.add('active');
-            
-            // Canvasサイズ調整と描画
             fitCanvas();
             drawAnalysis();
         }
 
-        // ウィンドウリサイズ時にも再描画
         window.addEventListener('resize', () => {
             if(modal.classList.contains('active')) {
                 fitCanvas();
@@ -575,91 +538,61 @@
             canvas.height = container.clientHeight;
         }
 
-        /* --- 重要な描画関数 --- */
         function drawAnalysis() {
             if (currentGlyphIndex < 0 || !font) return;
             
             const g = glyphsList[currentGlyphIndex].glyph;
             const w = canvas.width;
             const h = canvas.height;
-            const units = font.unitsPerEm;
             
-            // 設定取得
             const showMetrics = document.getElementById('showMetricsCheck').checked;
             const fillGlyph = document.getElementById('fillGlyphCheck').checked;
             const showPoints = document.getElementById('showPointsCheck').checked;
 
-            // キャンバスリセット
             ctx.clearRect(0, 0, w, h);
 
-            // 1. 座標系の計算
-            // フォントのBoundingBox全体が画面の80%に収まるようにスケール計算
-            // ただし、アセンダー/ディセンダーを含む高さを基準にする
             const fontHeight = font.ascender - font.descender;
-            const scaleY = (h * 0.7) / fontHeight;
-            const scale = scaleY; // Xも同じスケール
+            const scale = (h * 0.7) / fontHeight;
 
-            // 原点(0,0 = Baselineの左端)をキャンバス上のどこに置くか
-            // Y軸: キャンバス中央 + (AscenderとDescenderのバランス調整)
-            // 通常、Canvasは左上が(0,0)なので、Y軸反転が必要
-            
-            const originX = w / 2 - (g.advanceWidth * scale) / 2; // 文字を左右中央に
+            // 中央揃え計算
+            const originX = w / 2 - (g.advanceWidth * scale) / 2; 
             const originY = h / 2 + ((font.ascender + font.descender)/2 * scale); 
 
             ctx.save();
-
-            // 2. メトリクス線の描画 (座標変換前に描くか、変換後に描くか。ここでは変換なしで計算して描く)
-            // ただし、わかりやすくするために ctx.translate だけして描く
             ctx.translate(originX, originY);
             
             if (showMetrics) {
                 ctx.lineWidth = 1;
-                ctx.strokeStyle = "rgba(0, 255, 204, 0.5)"; // Cyan color
+                ctx.strokeStyle = "rgba(0, 255, 204, 0.5)"; 
                 
-                // Baseline (y=0) -> Canvas上では y=0 (translate済み)
-                drawLine(-1000, 0, 1000, 0, "#fff", 2); // Baselineは白く強く
+                drawLine(-1000, 0, 1000, 0, "#fff", 2); // Baseline
 
-                // Ascender (y = -font.ascender * scale) ※CanvasのYは下がプラスなのでマイナスする
                 const yAsc = -font.ascender * scale;
                 drawLine(-1000, yAsc, 1000, yAsc);
                 ctx.fillStyle = "rgba(0,255,204,0.7)";
                 ctx.fillText("Ascender", -originX + 10, yAsc - 5);
 
-                // Descender
                 const yDesc = -font.descender * scale;
                 drawLine(-1000, yDesc, 1000, yDesc);
                 ctx.fillText("Descender", -originX + 10, yDesc - 5);
 
-                // Advance Width (Left & Right boundaries)
-                // x=0 (LSB起点)
-                drawLine(0, -1000, 0, 1000);
-                // x=AdvanceWidth
+                drawLine(0, -1000, 0, 1000); // LSB
                 const xAdv = g.advanceWidth * scale;
-                drawLine(xAdv, -1000, xAdv, 1000);
+                drawLine(xAdv, -1000, xAdv, 1000); // RSB
                 
-                // メトリクス幅を塗りつぶし (薄く)
                 ctx.fillStyle = "rgba(0, 255, 204, 0.05)";
                 ctx.fillRect(0, yAsc, xAdv, yDesc - yAsc);
             }
 
-            // 3. グリフの描画
-            // ここでY軸を反転させる (フォント座標系に合わせる)
+            // フォント座標系へ変換（Y反転）
             ctx.scale(scale, -scale); 
 
-            // パスを取得して描画
-            const path = g.getPath(0, 0, 1); // scale済みなのでsize=1でパスデータ取得
-            
             if (fillGlyph) {
-                ctx.fillStyle = "#ffffff";
-                path.fill = "#ffffff";
-                // opentype.jsのdrawメソッドを使うとCanvasに直接描ける
                 g.draw(ctx, 0, 0, 1, {fill: '#fff'}); 
             } else {
-                // アウトラインのみ
                  g.draw(ctx, 0, 0, 1, {fill: null, stroke: '#fff', strokeWidth: 2/scale}); 
             }
 
-            // 4. ポイント（制御点）の表示
             if (showPoints) {
                 g.drawPoints(ctx, 0, 0, 1, {fill: '#ff0055', size: 4/scale});
             }
@@ -667,7 +600,6 @@
             ctx.restore();
         }
 
-        // 線を引くヘルパー関数
         function drawLine(x1, y1, x2, y2, color, width) {
             ctx.beginPath();
             ctx.moveTo(x1, y1);
@@ -675,12 +607,10 @@
             if(color) ctx.strokeStyle = color;
             if(width) ctx.lineWidth = width;
             ctx.stroke();
-            // 色を戻す
             ctx.strokeStyle = "rgba(0, 255, 204, 0.5)"; 
             ctx.lineWidth = 1;
         }
 
-        /* --- イベントリスナー (モーダル操作) --- */
         document.getElementById('closeModal').onclick = () => {
             modal.classList.remove('active');
         };
@@ -688,18 +618,14 @@
             if (e.target === modal) modal.classList.remove('active');
         };
         
-        // チェックボックス変更時に再描画
         document.querySelectorAll('.toggle-group input').forEach(input => {
             input.addEventListener('change', drawAnalysis);
         });
 
-        /* --- 検索フィルター (簡易実装) --- */
         document.getElementById('searchInput').addEventListener('input', (e) => {
             const val = e.target.value.toUpperCase();
-            // グリッド内の要素を非表示にする（DOM操作なので重いが、デモとしては許容）
             const cells = gridContainer.getElementsByClassName('glyph-cell');
             Array.from(cells).forEach(cell => {
-                // metaタグの中身を取得 (Unicode)
                 const meta = cell.querySelector('.g-meta').textContent;
                 if (meta.includes(val)) {
                     cell.style.display = 'flex';
@@ -709,14 +635,10 @@
             });
         });
 
-        /* --- グリッドサイズ変更 --- */
         document.getElementById('sizeSlider').addEventListener('input', (e) => {
-           // 再描画が必要（今回は簡易的にgrid-template-columnsを変える手もあるが、
-           // パス解像度に関わるので再render推奨。ここではCSS Grid幅のみ変更してごまかす）
            const size = e.target.value;
            gridContainer.style.gridTemplateColumns = `repeat(auto-fill, minmax(${size*1.5}px, 1fr))`;
         });
-
     </script>
 </body>
 </html>
