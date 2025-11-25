@@ -191,7 +191,6 @@
         .modal-visual {
             position: relative;
             background-color: #080808;
-            /* Grid Background */
             background-image: 
                 linear-gradient(rgba(51, 51, 51, 0.5) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(51, 51, 51, 0.5) 1px, transparent 1px);
@@ -267,7 +266,7 @@
             <span class="subtitle ui-mono">TYPEFACE INSPECTION FACILITY</span>
         </div>
         <div class="ui-mono" style="text-align: right; color: var(--dim-color);">
-            BUILD: 3.0.0 (STABLE)<br>OPENTYPE.JS
+            BUILD: 3.1.0 (COORDS FIXED)<br>OPENTYPE.JS
         </div>
     </header>
 
@@ -433,7 +432,6 @@
             for (let i = renderOffset; i < end; i++) {
                 const item = glyphsList[i];
                 const glyph = item.glyph;
-
                 const cell = document.createElement('div');
                 cell.className = 'glyph-cell';
                 cell.onclick = () => openModal(i);
@@ -459,7 +457,7 @@
 
         document.getElementById('loadMoreBtn').addEventListener('click', renderNextBatch);
 
-        /* --- Modal Logic (Manual Rendering) --- */
+        /* --- Modal Logic (Fixed Coordinate System) --- */
         const modal = document.getElementById('modalOverlay');
         const canvas = document.getElementById('glyphCanvas');
         const ctx = canvas.getContext('2d');
@@ -497,9 +495,10 @@
             canvas.height = container.clientHeight;
         }
 
-        /* * レンダリングの中核関数
-         * opentype.jsのdrawを使わず、手動でパスを描画することで
-         * 座標変換と色の問題を完全に解決する
+        /* * 描画の中核処理
+         * Canvasは「y軸下向きがプラス」ですが、フォントは「y軸上向きがプラス」です。
+         * 混乱を避けるため、ctx.scale(1, -1)は使わず、
+         * 描画時に全てのY座標にマイナスを掛けることで「上向き」に変換します。
          */
         function drawAnalysis() {
             if (currentGlyphIndex < 0 || !font) return;
@@ -513,69 +512,66 @@
             const fillGlyph = document.getElementById('fillGlyphCheck').checked;
             const showPoints = document.getElementById('showPointsCheck').checked;
 
-            // 1. 画面クリア
             ctx.clearRect(0, 0, w, h);
 
-            // 2. スケール計算: 画面の高さの60%にフォントの高さ(Ascender-Descender)を収める
+            // スケール計算
             const fontHeight = font.ascender - font.descender;
             const scale = (h * 0.6) / fontHeight;
 
-            // 3. 原点計算:
-            // X: 画面中央 - (文字幅の半分)
-            // Y: 画面中央 + (フォント上下中心のズレ補正)
+            // 原点計算 (Canvas座標系)
+            // Y軸は「上方向へ描画する」ため、基準点を画面下寄りに設定する
+            // 画面中央 + (フォントの中心点のズレ * scale)
             const glyphCenterX = (g.advanceWidth * scale) / 2;
             const fontCenterY = ((font.ascender + font.descender) / 2) * scale;
             
             const originX = (w / 2) - glyphCenterX;
-            const originY = (h / 2) + fontCenterY; // YはCanvas座標系(下プラス)なので加算して下げる
+            const originY = (h / 2) + fontCenterY; 
 
             ctx.save();
-            
-            // 4. 座標変換の適用
-            ctx.translate(originX, originY); // 原点移動
-            ctx.scale(scale, -scale); // Y軸反転（これで上方向がプラスになる）
+            ctx.translate(originX, originY);
+            ctx.scale(scale, scale); // Y軸反転はしない（手動で行うため）
 
-            // 5. ガイドライン描画 (座標系はフォント単位)
+            // --- ガイドライン (Y座標はすべてマイナスにする) ---
             if (showMetrics) {
-                const lineW = 1 / scale; // 1pxに見える太さ
-                const bound = 50000; // 十分長い線
+                const lineW = 1 / scale; 
+                const bound = 50000;
 
                 // Baseline (y=0)
                 drawLine(-bound, 0, bound, 0, "rgba(255,255,255,0.8)", lineW * 2); 
                 
-                // Ascender
-                const asc = font.ascender;
+                // Ascender (上方向なのでマイナス)
+                const asc = -font.ascender; 
                 drawLine(-bound, asc, bound, asc, "rgba(0, 255, 204, 0.5)", lineW);
-                drawLabel("Ascender", -500, asc + 20, scale, "rgba(0, 255, 204, 0.7)");
+                drawLabel("Ascender", -500, asc - 20, scale, "rgba(0, 255, 204, 0.7)"); // ラベル位置調整
 
-                // Descender
-                const desc = font.descender;
+                // Descender (下方向なのでマイナス×マイナス＝プラス)
+                // ただしfont.descenderは通常負の値なので、符号反転でプラス(画面下)になる
+                const desc = -font.descender; 
                 drawLine(-bound, desc, bound, desc, "rgba(0, 255, 204, 0.5)", lineW);
-                drawLabel("Descender", -500, desc - 100, scale, "rgba(0, 255, 204, 0.7)");
+                drawLabel("Descender", -500, desc + 60, scale, "rgba(0, 255, 204, 0.7)");
 
-                // Width lines
+                // Width lines (X座標はそのまま)
                 drawLine(0, -bound, 0, bound, "rgba(0, 255, 204, 0.5)", lineW); // LSB
-                drawLine(g.advanceWidth, -bound, g.advanceWidth, bound, "rgba(0, 255, 204, 0.5)", lineW); // Width
+                drawLine(g.advanceWidth, -bound, g.advanceWidth, bound, "rgba(0, 255, 204, 0.5)", lineW); // RSB
             }
 
-            // 6. グリフの描画 (手動パス構築)
-            // getPath(x, y, fontSize) -> fontSizeにupmを渡すとスケール1の生座標が返る
+            // --- パス描画 (Y座標を手動で反転) ---
             const path = g.getPath(0, 0, upm);
             
             ctx.beginPath();
-            // PathコマンドをCanvas APIに変換
             path.commands.forEach(cmd => {
+                // ここで全てのY座標にマイナスをつける
                 switch (cmd.type) {
-                    case 'M': ctx.moveTo(cmd.x, cmd.y); break;
-                    case 'L': ctx.lineTo(cmd.x, cmd.y); break;
-                    case 'Q': ctx.quadraticCurveTo(cmd.x1, cmd.y1, cmd.x, cmd.y); break;
-                    case 'C': ctx.bezierCurveTo(cmd.x1, cmd.y1, cmd.x2, cmd.y2, cmd.x, cmd.y); break;
+                    case 'M': ctx.moveTo(cmd.x, -cmd.y); break;
+                    case 'L': ctx.lineTo(cmd.x, -cmd.y); break;
+                    case 'Q': ctx.quadraticCurveTo(cmd.x1, -cmd.y1, cmd.x, -cmd.y); break;
+                    case 'C': ctx.bezierCurveTo(cmd.x1, -cmd.y1, cmd.x2, -cmd.y2, cmd.x, -cmd.y); break;
                     case 'Z': ctx.closePath(); break;
                 }
             });
 
             if (fillGlyph) {
-                ctx.fillStyle = "#FFFFFF"; // ★ここで色を白に指定
+                ctx.fillStyle = "#FFFFFF";
                 ctx.fill();
             } else {
                 ctx.strokeStyle = "#FFFFFF";
@@ -583,23 +579,21 @@
                 ctx.stroke();
             }
 
-            // 7. 制御点（Points）の描画
+            // --- 制御点 (Y座標反転) ---
             if (showPoints) {
-                const ptSize = 5 / scale; // 点の大きさ
+                const ptSize = 5 / scale;
                 ctx.fillStyle = "#FF0055";
                 
-                // glyph.path.commandsから座標を抽出して描画
                 path.commands.forEach(cmd => {
-                    if (cmd.x !== undefined) drawPoint(cmd.x, cmd.y, ptSize);
-                    if (cmd.x1 !== undefined) drawPoint(cmd.x1, cmd.y1, ptSize);
-                    if (cmd.x2 !== undefined) drawPoint(cmd.x2, cmd.y2, ptSize);
+                    if (cmd.x !== undefined) drawPoint(cmd.x, -cmd.y, ptSize);
+                    if (cmd.x1 !== undefined) drawPoint(cmd.x1, -cmd.y1, ptSize);
+                    if (cmd.x2 !== undefined) drawPoint(cmd.x2, -cmd.y2, ptSize);
                 });
             }
 
             ctx.restore();
         }
 
-        // ヘルパー関数
         function drawLine(x1, y1, x2, y2, color, width) {
             ctx.beginPath();
             ctx.moveTo(x1, y1);
@@ -615,14 +609,12 @@
             ctx.fill();
         }
 
-        // テキストを描画するためのヘルパー (反転したY軸に対応して文字を正立させる)
         function drawLabel(text, x, y, scale, color) {
+            // 文字を描画するときは反転は不要（座標計算で解決済み）
             ctx.save();
-            ctx.translate(x, y);
-            ctx.scale(1, -1); // 文字だけY軸反転を戻す
             ctx.fillStyle = color;
-            ctx.font = `${12 / scale}px "Roboto Mono"`; // スケールに依存しない一定の見た目のサイズ
-            ctx.fillText(text, 0, 0);
+            ctx.font = `${12 / scale}px "Roboto Mono"`;
+            ctx.fillText(text, x, y);
             ctx.restore();
         }
 
