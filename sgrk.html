@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>リアルすごろく旅 - Destiny Dice</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Sawarabi+Mincho&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --panel-bg: #ffffff;
+            --accent-color: #2c3e50;
+            --highlight-color: #e74c3c;
+            --text-main: #333;
+            --text-sub: #7f8c8d;
+            font-synthesis: none;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: row; /* 横並び（PC用） */
+            background-color: var(--bg-color);
+            font-family: 'Noto Sans JP', sans-serif;
+            overflow: hidden; /* 全体スクロール禁止 */
+        }
+
+        /* --- 3D Canvas Area --- */
+        #canvas-container {
+            flex: 1; /* 残りの幅を全部使う */
+            position: relative;
+            background-color: #000;
+            overflow: hidden;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        /* --- Sidebar UI Area --- */
+        #sidebar {
+            width: 360px;
+            background-color: var(--panel-bg);
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid #444;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+
+        /* Header in Sidebar */
+        header {
+            padding: 20px;
+            background-color: var(--accent-color);
+            color: white;
+            text-align: center;
+        }
+        header h1 { margin: 0; font-size: 1.2rem; letter-spacing: 0.1em; }
+
+        /* Controls Section */
+        #controls {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            background-color: #f9f9f9;
+        }
+
+        /* Result Display Card */
+        .result-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .res-label { font-size: 0.8rem; color: var(--text-sub); margin-bottom: 5px; display: block; }
+        
+        #res-dir {
+            display: block;
+            font-size: 3rem;
+            color: var(--accent-color);
+            font-family: 'Yu Gothic', sans-serif; /* 明朝体 */
+            font-synthesis: none;
+            line-height: 1.2;
+        }
+
+        #res-dist {
+            display: block;
+            font-size: 1.8rem;
+            color: var(--highlight-color);
+            margin-top: 5px;
+        }
+
+        #res-desc {
+            display: block;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: var(--text-sub);
+        }
+
+        /* Button */
+        #roll-btn {
+            width: 100%;
+            padding: 18px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+            box-shadow: 0 4px 6px rgba(41, 128, 185, 0.3);
+        }
+        #roll-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(41, 128, 185, 0.4); }
+        #roll-btn:active { transform: translateY(1px); }
+        #roll-btn:disabled { background: #bdc3c7; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        /* History Section */
+        #history-panel {
+            flex: 1; /* 余った縦幅を使う */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* コンテナ自体はスクロールしない */
+            padding: 0 20px 20px 20px;
+        }
+
+        #history-panel h2 {
+            font-size: 1rem;
+            color: var(--text-main);
+            margin: 20px 0 10px 0;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 5px;
+        }
+
+        #history-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            overflow-y: auto; /* ここだけスクロール */
+            flex: 1;
+            scrollbar-width: thin;
+        }
+        
+        /* Custom Scrollbar */
+        #history-list::-webkit-scrollbar { width: 6px; }
+        #history-list::-webkit-scrollbar-thumb { background-color: #ccc; border-radius: 3px; }
+
+        #history-list li {
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+            display: grid;
+            grid-template-columns: 60px 1fr auto;
+            align-items: center;
+            font-size: 0.95rem;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+        #history-list li:first-child {
+            background-color: #eaf2f8;
+            border-left: 4px solid #3498db;
+            font-weight: bold;
+        }
+
+        .hist-time { font-size: 0.75rem; color: #999; }
+        .hist-dir { font-family: 'Yu Gothic', sans-serif; color: var(--accent-color); font-weight: normal; }
+        .hist-dist { color: var(--highlight-color); font-weight: bold; }
+
+        /* --- Responsive Design (Smartphone) --- */
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            #sidebar { width: 100%; height: 50%; box-shadow: 0 -5px 15px rgba(0,0,0,0.1); border-left: none; border-top: 1px solid #ddd; }
+            #canvas-container { height: 50%; }
+            #controls { padding: 10px; display: flex; align-items: center; gap: 15px; }
+            .result-card { margin-bottom: 0; flex: 1; padding: 10px; display: flex; justify-content: space-around; align-items: center; }
+            #res-dir { font-size: 2rem; margin: 0; }
+            #res-dist { font-size: 1.5rem; margin: 0; }
+            .res-label, #res-desc { display: none; /* スマホでは詳細テキストを隠してすっきりさせる */ }
+            #roll-btn { width: auto; padding: 10px 25px; border-radius: 8px; font-size: 1rem; }
+            header { padding: 10px; font-size: 0.8rem; }
+            #history-panel { padding: 0 10px 10px 10px; }
+            #history-panel h2 { margin: 10px 0; }
+        }
+    </style>
+    
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.150.0/build/three.module.js",
+          "cannon-es": "https://unpkg.com/cannon-es@0.20.0/dist/cannon-es.js"
+        }
+      }
+    </script>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <aside id="sidebar">
+        <header>
+            <h1>旅の行先決定</h1>
+        </header>
+
+        <div id="controls">
+            <div class="result-card">
+                <span class="res-label">RESULT</span>
+                <div style="display:flex; justify-content: center; align-items: baseline; gap: 15px; flex-wrap: wrap;">
+                    <span id="res-dir">---</span>
+                    <span id="res-dist">---</span>
+                </div>
+                <span id="res-desc">サイコロを振ってください</span>
+            </div>
+            <button id="roll-btn">サイコロを振る</button>
+        </div>
+
+        <div id="history-panel">
+            <h2>履歴</h2>
+            <ul id="history-list"></ul>
+        </div>
+    </aside>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import * as CANNON from 'cannon-es';
+
+        // --- 設定値 ---
+        const BOARD_SIZE = 26;
+        const VISUAL_WALL_HEIGHT = 3;
+        const CEILING_HEIGHT = 15;
+
+        // --- DOM Elements ---
+        const container = document.getElementById('canvas-container');
+        const rollBtn = document.getElementById('roll-btn');
+        const elResDir = document.getElementById('res-dir');
+        const elResDist = document.getElementById('res-dist');
+        const elResDesc = document.getElementById('res-desc');
+        const historyList = document.getElementById('history-list');
+
+        let scene, camera, renderer, world;
+        let diceD8, diceD6;
+        let isRolling = false;
+
+        const d8Labels = ['艮', '乾', '巽', '坤', '北', '南', '東', '西'];
+        const d8FullLabels = {'艮':'艮(北東)', '乾':'乾(北西)', '巽':'巽(南東)', '坤':'坤(南西)', '北':'北', '南':'南', '東':'東', '西':'西'};
+
+        init();
+        animate();
+
+        function init() {
+            // 1. Three.js Setup
+            // サイズ取得は window ではなく container のサイズを使う
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x222222);
+
+            // カメラ調整: コンテナのアスペクト比に合わせる
+            const aspect = width / height;
+            const viewSize = 20;
+            camera = new THREE.OrthographicCamera(-viewSize * aspect, viewSize * aspect, viewSize, -viewSize, 1, 100);
+            camera.position.set(0, 40, 0);
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(width, height);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            
+            // キャンバスをコンテナに追加
+            container.appendChild(renderer.domElement);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+            const spotLight = new THREE.SpotLight(0xffedd0, 1.0);
+            spotLight.position.set(5, 40, 5);
+            spotLight.castShadow = true;
+            spotLight.shadow.mapSize.width = 2048;
+            spotLight.shadow.mapSize.height = 2048;
+            scene.add(spotLight);
+
+            // 2. Cannon.js Setup
+            world = new CANNON.World();
+            world.gravity.set(0, -40, 0);
+            world.allowSleep = true;
+            world.solver.iterations = 20;
+            world.solver.tolerance = 0.001;
+
+            const matBoard = new CANNON.Material();
+            const matDice = new CANNON.Material();
+            world.addContactMaterial(new CANNON.ContactMaterial(matBoard, matDice, { friction: 0.1, restitution: 0.5 }));
+            world.addContactMaterial(new CANNON.ContactMaterial(matDice, matDice, { friction: 0.1, restitution: 0.5 }));
+
+            // 3. Create Objects
+            createBoard(matBoard);
+            createInvisibleCeiling(matBoard);
+            diceD8 = createVisualD8(matDice, new CANNON.Vec3(-3, 5, 0));
+            diceD6 = createVisualD6(matDice, new CANNON.Vec3(3, 5, 0));
+
+            // Events
+            rollBtn.addEventListener('click', rollDice);
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        // --- Texture Generation ---
+        function createD6Texture(number, color, dotColor) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = color; ctx.fillRect(0, 0, 256, 256);
+            ctx.strokeStyle = '#ddd'; ctx.lineWidth = 10; ctx.strokeRect(0,0,256,256);
+            ctx.fillStyle = dotColor;
+            const r = 24, c = 128, o = 64;
+            
+            const drawDot = (x, y, rad=r) => { ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI*2); ctx.fill(); };
+
+            if (number===1) drawDot(c,c,r*1.5);
+            else if (number===2) { drawDot(c-o,c-o); drawDot(c+o,c+o); }
+            else if (number===3) { drawDot(c-o,c-o); drawDot(c,c); drawDot(c+o,c+o); }
+            else if (number===4) { drawDot(c-o,c-o); drawDot(c+o,c-o); drawDot(c-o,c+o); drawDot(c+o,c+o); }
+            else if (number===5) { drawDot(c-o,c-o); drawDot(c+o,c-o); drawDot(c,c); drawDot(c-o,c+o); drawDot(c+o,c+o); }
+            else if (number===6) { drawDot(c-o,c-o); drawDot(c+o,c-o); drawDot(c-o,c); drawDot(c+o,c); drawDot(c-o,c+o); drawDot(c+o,c+o); }
+            
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function createD8Texture(text) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#111'; ctx.fillRect(0, 0, 256, 256);
+            ctx.strokeStyle = '#b8860b'; ctx.lineWidth = 5;
+            ctx.beginPath(); ctx.moveTo(128, 10); ctx.lineTo(246, 246); ctx.lineTo(10, 246); ctx.closePath(); ctx.stroke();
+            ctx.fillStyle = '#fff'; ctx.font = 'normal 100px "ETD-へべれけ", serif';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.translate(128, 150); ctx.fillText(text, 0, 0);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // --- Object Creation ---
+        function createVisualD6(material, pos) {
+            const s = 2.5;
+            const geo = new THREE.BoxGeometry(s, s, s);
+            const materials = [
+                new THREE.MeshStandardMaterial({ map: createD6Texture(2, '#fff', '#000') }),
+                new THREE.MeshStandardMaterial({ map: createD6Texture(5, '#fff', '#000') }),
+                new THREE.MeshStandardMaterial({ map: createD6Texture(1, '#fff', '#d00') }),
+                new THREE.MeshStandardMaterial({ map: createD6Texture(6, '#fff', '#000') }),
+                new THREE.MeshStandardMaterial({ map: createD6Texture(3, '#fff', '#000') }),
+                new THREE.MeshStandardMaterial({ map: createD6Texture(4, '#fff', '#000') }),
+            ];
+            const mesh = new THREE.Mesh(geo, materials);
+            mesh.castShadow = true; scene.add(mesh);
+            const body = new CANNON.Body({ mass: 1, material: material, shape: new CANNON.Box(new CANNON.Vec3(s/2, s/2, s/2)) });
+            body.position.copy(pos); body.linearDamping = 0.1; body.angularDamping = 0.1;
+            body.ccdSpeedThreshold = 1; body.ccdIterations = 10;
+            world.addBody(body);
+            return { mesh, body, type: 'd6' };
+        }
+
+        function createVisualD8(material, pos) {
+            const r = 2.0;
+            let geo = new THREE.OctahedronGeometry(r, 0).toNonIndexed();
+            const materials = [];
+            for (let i = 0; i < 8; i++) {
+                geo.addGroup(i * 3, 3, i);
+                materials.push(new THREE.MeshStandardMaterial({ map: createD8Texture(d8Labels[i]), roughness: 0.4 }));
+            }
+            const uvAttr = geo.attributes.uv;
+            for (let i = 0; i < 8; i++) {
+                uvAttr.setXY(i*3+0, 0.5, 0.9); uvAttr.setXY(i*3+1, 0.1, 0.1); uvAttr.setXY(i*3+2, 0.9, 0.1);
+            }
+            geo.computeVertexNormals();
+            const mesh = new THREE.Mesh(geo, materials);
+            mesh.castShadow = true; scene.add(mesh);
+            
+            const vertices = [ new CANNON.Vec3(r,0,0), new CANNON.Vec3(-r,0,0), new CANNON.Vec3(0,r,0), new CANNON.Vec3(0,-r,0), new CANNON.Vec3(0,0,r), new CANNON.Vec3(0,0,-r) ];
+            const faces = [ [0,2,4], [0,4,3], [0,3,5], [0,5,2], [1,4,2], [1,3,4], [1,5,3], [1,2,5] ];
+            const body = new CANNON.Body({ mass: 1, material: material, shape: new CANNON.ConvexPolyhedron({ vertices, faces }) });
+            body.position.copy(pos); body.linearDamping = 0.1; body.angularDamping = 0.1;
+            body.ccdSpeedThreshold = 1; body.ccdIterations = 10;
+            world.addBody(body);
+            return { mesh, body, type: 'd8', faceLabels: d8Labels };
+        }
+
+        function createBoard(material) {
+            const boardGroup = new THREE.Group();
+            const floorMesh = new THREE.Mesh(new THREE.BoxGeometry(BOARD_SIZE, 1, BOARD_SIZE), new THREE.MeshStandardMaterial({ color: 0x27ae60, roughness: 1.0 }));
+            floorMesh.position.y = -0.5; floorMesh.receiveShadow = true; boardGroup.add(floorMesh);
+            
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.6 });
+            const vThick = 2; 
+            const createWall = (w, h, d, x, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat); m.position.set(x, h/2, z); m.castShadow = true; m.receiveShadow = true; return m; };
+            const offset = BOARD_SIZE/2 + vThick/2;
+            boardGroup.add(createWall(BOARD_SIZE+vThick*2, VISUAL_WALL_HEIGHT, vThick, 0, -offset));
+            boardGroup.add(createWall(BOARD_SIZE+vThick*2, VISUAL_WALL_HEIGHT, vThick, 0, offset));
+            boardGroup.add(createWall(vThick, VISUAL_WALL_HEIGHT, BOARD_SIZE, -offset, 0));
+            boardGroup.add(createWall(vThick, VISUAL_WALL_HEIGHT, BOARD_SIZE, offset, 0));
+            scene.add(boardGroup);
+
+            // Physics
+            const fBody = new CANNON.Body({ type: CANNON.Body.STATIC, material: material });
+            fBody.addShape(new CANNON.Box(new CANNON.Vec3(BOARD_SIZE, 50, BOARD_SIZE))); fBody.position.set(0, -50.5, 0); world.addBody(fBody);
+            
+            const addPWall = (ax, sn) => {
+                const b = new CANNON.Body({ type: CANNON.Body.STATIC, material: material });
+                b.addShape(new CANNON.Box(ax==='z' ? new CANNON.Vec3(BOARD_SIZE, 25, 25) : new CANNON.Vec3(25, 25, BOARD_SIZE)));
+                b.position.set(ax==='x'?sn*(BOARD_SIZE/2+25):0, 25, ax==='z'?sn*(BOARD_SIZE/2+25):0);
+                world.addBody(b);
+            };
+            addPWall('z',-1); addPWall('z',1); addPWall('x',-1); addPWall('x',1);
+        }
+
+        function createInvisibleCeiling(material) {
+            const b = new CANNON.Body({ type: CANNON.Body.STATIC, material: material });
+            b.addShape(new CANNON.Plane()); b.quaternion.setFromEuler(Math.PI/2,0,0); b.position.set(0,CEILING_HEIGHT,0); world.addBody(b);
+        }
+
+        // --- Logic ---
+        function rollDice() {
+            if (isRolling) return;
+            isRolling = true; rollBtn.disabled = true;
+            elResDir.textContent = "・・・"; elResDist.textContent = ""; elResDesc.textContent = "運命の回転中...";
+
+            [diceD8, diceD6].forEach((d) => {
+                d.body.wakeUp();
+                d.body.position.set((Math.random()-0.5)*5, 10, (Math.random()-0.5)*5);
+                d.body.velocity.setZero(); d.body.angularVelocity.setZero();
+                const f = 30 + Math.random() * 20, a = Math.random() * Math.PI * 2;
+                d.body.applyImpulse(new CANNON.Vec3(Math.cos(a)*f, -10, Math.sin(a)*f), d.body.position);
+                d.body.angularVelocity.set((Math.random()-0.5)*20, (Math.random()-0.5)*20, (Math.random()-0.5)*20);
+            });
+            checkStoredResult();
+        }
+
+        function checkStoredResult() {
+            const th = 0.05;
+            if (diceD8.body.velocity.lengthSquared() < th && diceD8.body.angularVelocity.lengthSquared() < th &&
+                diceD6.body.velocity.lengthSquared() < th && diceD6.body.angularVelocity.lengthSquared() < th) {
+                isRolling = false; rollBtn.disabled = false; determineResults();
+            } else {
+                requestAnimationFrame(checkStoredResult);
+            }
+        }
+
+        function determineResults() {
+            const ray = new THREE.Raycaster(); const down = new THREE.Vector3(0, -1, 0);
+            
+            // D8
+            ray.set(new THREE.Vector3(diceD8.mesh.position.x, 20, diceD8.mesh.position.z), down);
+            const hitD8 = ray.intersectObject(diceD8.mesh);
+            const dir = hitD8.length > 0 ? d8FullLabels[diceD8.faceLabels[hitD8[0].face.materialIndex]] : "不明";
+
+            // D6
+            const up = new THREE.Vector3(0, 1, 0).applyQuaternion(diceD6.mesh.quaternion.clone().invert());
+            let dn = 1;
+            if (Math.abs(up.y) > 0.8) dn = up.y > 0 ? 1 : 6;
+            else if (Math.abs(up.x) > 0.8) dn = up.x > 0 ? 2 : 5;
+            else if (Math.abs(up.z) > 0.8) dn = up.z > 0 ? 3 : 4;
+            const dist = dn * 10;
+
+            elResDir.textContent = dir.split('(')[0]; // 表示は漢字のみにする
+            elResDist.textContent = dist + "km";
+            elResDesc.textContent = `方角: ${dir} / 距離: ${dist}km`;
+            
+            const li = document.createElement('li');
+            li.innerHTML = `<span class="hist-time">${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span> <span class="hist-dir">${dir}</span> <span class="hist-dist">${dist}km</span>`;
+            historyList.prepend(li);
+        }
+
+        function onWindowResize() {
+            // Containerのサイズに基づいてリサイズ
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            const aspect = width / height;
+            const viewSize = 20;
+            
+            camera.left = -viewSize * aspect; camera.right = viewSize * aspect;
+            camera.top = viewSize; camera.bottom = -viewSize;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            world.step(1/120); world.step(1/120);
+            diceD8.mesh.position.copy(diceD8.body.position); diceD8.mesh.quaternion.copy(diceD8.body.quaternion);
+            diceD6.mesh.position.copy(diceD6.body.position); diceD6.mesh.quaternion.copy(diceD6.body.quaternion);
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
