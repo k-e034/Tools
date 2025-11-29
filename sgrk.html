@@ -270,7 +270,8 @@
             camera.position.set(0, 40, 0);
             camera.lookAt(0, 0, 0);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             renderer.setSize(width, height);
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -313,9 +314,12 @@
 
         // --- Texture Generation ---
         function createD6Texture(number, color, dotColor) {
+            const size =512;
             const canvas = document.createElement('canvas');
-            canvas.width = 256; canvas.height = 256;
+            canvas.width = size; canvas.height = size;
             const ctx = canvas.getContext('2d');
+            const scale = size / 256;
+            ctx.scale(scale, scale);
             ctx.fillStyle = color; ctx.fillRect(0, 0, 256, 256);
             ctx.strokeStyle = '#ddd'; ctx.lineWidth = 10; ctx.strokeRect(0,0,256,256);
             ctx.fillStyle = dotColor;
@@ -330,20 +334,28 @@
             else if (number===5) { drawDot(c-o,c-o); drawDot(c+o,c-o); drawDot(c,c); drawDot(c-o,c+o); drawDot(c+o,c+o); }
             else if (number===6) { drawDot(c-o,c-o); drawDot(c+o,c-o); drawDot(c-o,c); drawDot(c+o,c); drawDot(c-o,c+o); drawDot(c+o,c+o); }
             
-            return new THREE.CanvasTexture(canvas);
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            return tex;
         }
 
         function createD8Texture(text) {
+            const size =512;
             const canvas = document.createElement('canvas');
-            canvas.width = 256; canvas.height = 256;
+            canvas.width = size; canvas.height = size;
             const ctx = canvas.getContext('2d');
+            const scale = size / 256;
+            ctx.scale(scale, scale);
             ctx.fillStyle = '#111'; ctx.fillRect(0, 0, 256, 256);
             ctx.strokeStyle = '#b8860b'; ctx.lineWidth = 5;
             ctx.beginPath(); ctx.moveTo(128, 10); ctx.lineTo(246, 246); ctx.lineTo(10, 246); ctx.closePath(); ctx.stroke();
             ctx.fillStyle = '#fff'; ctx.font = 'normal 100px "ETD-へべれけ", serif';
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.translate(128, 150); ctx.fillText(text, 0, 0);
-            return new THREE.CanvasTexture(canvas);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            return tex;
         }
 
         // --- Object Creation ---
